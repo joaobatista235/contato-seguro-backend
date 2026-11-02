@@ -30,33 +30,46 @@ class CategoryService
     public function getOne($adminUserId, $categoryId)
     {
         $query = "
-            SELECT *
+            SELECT
+                *
             FROM category c
-            WHERE c.active = 1
-            AND c.company_id = {$this->getCompanyFromAdminUser($adminUserId)}
-            AND c.id = {$categoryId}
+            WHERE
+                c.active = 1 AND
+                (c.company_id = :company_id OR c.company_id IS NULL) AND
+                c.id = :category_id
         ";
 
         $stm = $this->pdo->prepare($query);
 
-        $stm->execute();
+        $stm->execute([
+            'company_id' => $this->getCompanyFromAdminUser($adminUserId),
+            'category_id' => $categoryId
+        ]);
 
         return $stm;
     }
 
-    public function getProductCategory($productId)
+    public function getProductCategory($productId, $adminUserId)
     {
         $query = "
-            SELECT c.id
+            SELECT
+                DISTINCT c.id, c.title
             FROM category c
-            INNER JOIN product_category pc
-                ON pc.cat_id = c.id
-            WHERE pc.product_id = {$productId}
+            INNER JOIN product_category pc ON pc.cat_id = c.id
+            INNER JOIN admin_user au ON au.id = :admin_user_id
+            WHERE
+                pc.product_id = :product_id AND
+                c.active = 1 AND
+                (c.company_id IS NULL OR c.company_id = au.company_id)
+            ORDER BY c.id
         ";
 
         $stm = $this->pdo->prepare($query);
 
-        $stm->execute();
+        $stm->execute([
+            'product_id' => $productId,
+            'admin_user_id' => $adminUserId,
+        ]);
 
         return $stm;
     }

@@ -171,4 +171,24 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 - [ ] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
 
 ## Suas Respostas, Dúvidas e Observações
-_[Adicione  aqui suas respostas, dúvidas e observações]_
+### Categorias nas consultas de produtos
+
+A busca `GET /products/{id}` lia apenas a primeira associação com `fetch()` e
+atribuía uma única categoria ao produto. Agora, uma consulta com `JOIN` busca
+todas as categorias ativas associadas, incluindo as padrão (`company_id IS NULL`)
+e as personalizadas da empresa do administrador. Os parâmetros são vinculados à
+consulta, e não é necessário consultar cada categoria separadamente.
+
+Nas respostas de `GET /products/{id}` e `GET /products`, o campo `category` passa de texto para uma lista de
+nomes, inclusive quando existe apenas uma categoria. Sem categorias disponíveis,
+retorna `[]`. Exemplo para `king size bed`: `"category": ["furniture", "house"]`.
+A listagem agrupa as categorias por produto em `ProductService::getAll()` após uma única consulta com
+`JOIN`, retornando cada produto uma vez, sem subqueries nem consultas por produto.
+O serviço retorna um array pronto para consumo; o controller apenas serializa
+esse resultado na resposta HTTP. O relatório também utiliza esse retorno.
+Os `LEFT JOIN`s preservam produtos sem categorias disponíveis. A empresa é obtida
+pelo administrador, em vez de comparar o ID do produto/empresa com o ID do usuário.
+
+Testes de regressão usam SQLite em memória para verificar múltiplas categorias,
+categorias padrão, categorias de outra empresa, categorias inativas e produtos
+sem categorias, sem alterar o banco de desenvolvimento.

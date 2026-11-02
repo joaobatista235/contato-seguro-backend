@@ -23,8 +23,8 @@ class ProductController
     {
         $adminUserId = $request->getHeader('admin_user_id')[0];
         
-        $stm = $this->service->getAll($adminUserId);
-        $response->getBody()->write(json_encode($stm->fetchAll()));
+        $products = $this->service->getAll($adminUserId);
+        $response->getBody()->write(json_encode($products));
         return $response->withStatus(200);
     }
 
@@ -34,9 +34,8 @@ class ProductController
         $product = Product::hydrateByFetch($stm->fetch());
 
         $adminUserId = $request->getHeader('admin_user_id')[0];
-        $productCategory = $this->categoryService->getProductCategory($product->id)->fetch();
-        $fetchedCategory = $this->categoryService->getOne($adminUserId, $productCategory->id)->fetch();
-        $product->setCategory($fetchedCategory->title);
+        $categories = $this->categoryService->getProductCategory($product->id, $adminUserId)->fetchAll();
+        $product->setCategory(array_column($categories, 'title'));
 
         $response->getBody()->write(json_encode($product));
         return $response->withStatus(200);

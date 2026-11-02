@@ -12,31 +12,53 @@ class ProductService
         $this->pdo = DB::connect();
     }
 
-    public function getAll($adminUserId)
+    public function getAll($adminUserId): array
     {
         $query = "
-            SELECT p.*, c.title as category
+            SELECT DISTINCT p.*, c.id AS category_id, c.title AS category
             FROM product p
-            INNER JOIN product_category pc ON pc.product_id = p.id
-            INNER JOIN category c ON c.id = pc.id
-            WHERE p.company_id = {$adminUserId}
+            INNER JOIN admin_user au ON au.company_id = p.company_id AND au.id = :admin_user_id
+            LEFT JOIN product_category pc ON pc.product_id = p.id
+            LEFT JOIN category c ON c.id = pc.cat_id
+                AND c.active = 1
+                AND (c.company_id IS NULL OR c.company_id = au.company_id)
+            ORDER BY p.id, c.id
         ";
 
         $stm = $this->pdo->prepare($query);
 
-        $stm->execute();
+        $stm->execute(['admin_user_id' => $adminUserId]);
 
-        return $stm;
+        $products = [];
+
+        while ($row = $stm->fetch(\PDO::FETCH_ASSOC)) {
+            $productId = $row['id'];
+
+            if (!isset($products[$productId])) {
+                $products[$productId] = $row;
+                $products[$productId]['category'] = [];
+                unset($products[$productId]['category_id']);
+            }
+
+            if ($row['category_id'] !== null) {
+                $products[$productId]['category'][] = $row['category'];
+            }
+        }
+
+        return array_values($products);
     }
 
     public function getOne($id)
     {
-        $stm = $this->pdo->prepare("
-            SELECT *
+        $query = "
+            SELECT
+                *
             FROM product
-            WHERE id = {$id}
-        ");
-        $stm->execute();
+            WHERE id = :id
+        ";
+
+        $stm = $this->pdo->prepare($query);
+        $stm->execute(['id' => $id]);
 
         return $stm;
     }

@@ -82,7 +82,8 @@
 							"path": [
 								""
 							]
-						}
+						},
+						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém uma lista com todas as categorias ativas disponíveis, ou [] quando não há categorias."
 					},
 					"response": []
 				},
@@ -118,7 +119,8 @@
 							"path": [
 								"10"
 							]
-						}
+						},
+						"description": "GET /products/{id}: o campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []."
 					},
 					"response": []
 				},
