@@ -39,8 +39,7 @@ class ReportController
             $stm = $this->companyService->getNameById($product['company_id']);
             $companyName = $stm->fetch()->name;
 
-            $stm = $this->productService->getLog($product['id']);
-            $productLogs = $stm->fetchAll();
+            $productLogs = $this->productService->getFormattedLogs($product['id']);
             
             $data[$i+1][] = $product['id'];
             $data[$i+1][] = $companyName;
@@ -55,7 +54,8 @@ class ReportController
         foreach ($data as $row) {
             $report .= "<tr>";
             foreach ($row as $column) {
-                $report .= "<td>{$column}</td>";
+                $escaped = htmlspecialchars((string)$column, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $report .= "<td style='white-space: pre-line;'>{$escaped}</td>";
             }
             $report .= "</tr>";
         }

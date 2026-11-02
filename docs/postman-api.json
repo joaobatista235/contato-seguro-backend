@@ -33,15 +33,8 @@
 								"value": "1"
 							}
 						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.report }}/",
-							"host": [
-								"{{ _.base_url }}{{ _.report }}"
-							],
-							"path": [
-								""
-							]
-						}
+						"url": "http://{{base_url}}{{report}}",
+						"description": "GET /report (sem barra final): relatório HTML com logs no formato (Nome do usuário, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss), separados por vírgula e quebra de linha. Usuários ausentes aparecem como Usuário #ID."
 					},
 					"response": []
 				}
@@ -287,15 +280,8 @@
 								"value": "1"
 							}
 						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.categories }}/",
-							"host": [
-								"{{ _.base_url }}{{ _.categories }}"
-							],
-							"path": [
-								""
-							]
-						}
+						"url": "http://{{base_url}}{{categories}}",
+						"description": "GET /categories (sem barra final): lista as categorias padrão compartilhadas e as personalizadas da empresa do administrador informado em admin_user_id. Categorias de outras empresas não são incluídas."
 					},
 					"response": []
 				},

@@ -16,7 +16,7 @@
         "create-migration": "./vendor/bin/phinx create",
         "rollback-migration": "./vendor/bin/phinx rollback",
 
-        "test": ["phpunit --testsuite unit --testdox"]
+        "test": ["phpunit --testdox"]
     },
     "require-dev": {
         "phpunit/phpunit": "9.5"

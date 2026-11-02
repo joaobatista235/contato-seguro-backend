@@ -176,12 +176,34 @@ class ProductService
     public function getLog($id)
     {
         $stm = $this->pdo->prepare("
-            SELECT *
-            FROM product_log
-            WHERE product_id = {$id}
+            SELECT pl.*, au.name AS user_name
+            FROM product_log pl
+            LEFT JOIN admin_user au ON au.id = pl.admin_user_id
+            WHERE pl.product_id = :product_id
+            ORDER BY pl.timestamp, pl.id
         ");
-        $stm->execute();
+        $stm->execute(['product_id' => $id]);
 
         return $stm;
+    }
+
+    public function getFormattedLogs($productId): string
+    {
+        $actions = [
+            'create' => 'Criação',
+            'update' => 'Atualização',
+            'delete' => 'Remoção',
+        ];
+        $entries = [];
+        $stm = $this->getLog($productId);
+
+        while ($log = $stm->fetch()) {
+            $userName = $log->user_name ?? 'Usuário #' . $log->admin_user_id;
+            $action = $actions[$log->action] ?? $log->action;
+            $timestamp = (new \DateTimeImmutable($log->timestamp))->format('d/m/Y H:i:s');
+            $entries[] = "({$userName}, {$action}, {$timestamp})";
+        }
+
+        return implode(",\n", $entries);
     }
 }

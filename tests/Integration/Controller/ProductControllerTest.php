@@ -1,6 +1,6 @@
 <?php
 
-namespace ContatoSeguro\Tests\Unit\Controller;
+namespace ContatoSeguro\Tests\Integration\Controller;
 
 use Contatoseguro\TesteBackend\Config\DB;
 use Contatoseguro\TesteBackend\Controller\ProductController;
@@ -54,6 +54,7 @@ class ProductControllerTest extends TestCase
         DB::$pdo = $this->previousConnection;
     }
 
+    /** @dataProvider productCategories */
     public function testGetOneReturnsAllAvailableCategories(int $productId, array $expected): void
     {
         $request = (new ServerRequestFactory())

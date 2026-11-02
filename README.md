@@ -72,9 +72,9 @@ Abaixo, as solicitações do cliente:
 Modificações requisitadas pelo cliente em funcionalidades já existentes
 
 ### Categorias
-- [ ] A categoria está vindo errada na listagem de produtos para alguns casos (_exemplo: produto `blue trouser` está vindo na categoria `phone`_);
-- [ ] Alguns produtos estão vindo com a categoria `null` ao serem pesquisados individualmente (_exemplo: produto `iphone 8`_);
-- [ ] Cadastrei o produto `king size bed` em mais de uma categoria, mas ele aparece **apenas** na categoria `furniture` na busca individual do produto.
+- [x] A categoria está vindo errada na listagem de produtos para alguns casos (_exemplo: produto `blue trouser` está vindo na categoria `phone`_);
+- [x] Alguns produtos estão vindo com a categoria `null` ao serem pesquisados individualmente (_exemplo: produto `iphone 8`_);
+- [x] Cadastrei o produto `king size bed` em mais de uma categoria, mas ele aparece **apenas** na categoria `furniture` na busca individual do produto.
 
 ### Filtros e Ordenamento
 Para a listagem de produtos:
@@ -83,7 +83,7 @@ Para a listagem de produtos:
 - [ ] Gostaria de poder ordenar os produtos por data de cadastro.
 
 ### Relatório
-- [ ] O relatório não está mostrando a coluna de logs corretamente, se possível, gostaria de trazer no seguinte formato:
+- [x] O relatório não está mostrando a coluna de logs corretamente, se possível, gostaria de trazer no seguinte formato:
   (Nome do usuário, Tipo de alteração e Data),
   (Nome do usuário, Tipo de alteração e Data),
   (Nome do usuário, Tipo de alteração e Data)
@@ -96,7 +96,7 @@ Para a listagem de produtos:
 - [ ] Gostaria de saber qual usuário mudou o preço do produto `iphone 8` por último.
 
 ### Correção de bug
-- [ ] Ao rodar os teste unitários com `composer test` são apontados erros. Eles precisam ser resolvidos, com documentação sobre a causa e a solução.
+- [x] Ao rodar os teste unitários com `composer test` são apontados erros. Eles precisam ser resolvidos, com documentação sobre a causa e a solução.
 
 ## Features
 Novas funcionalidades requisitadas pelo cliente
@@ -192,3 +192,80 @@ pelo administrador, em vez de comparar o ID do produto/empresa com o ID do usuá
 Testes de regressão usam SQLite em memória para verificar múltiplas categorias,
 categorias padrão, categorias de outra empresa, categorias inativas e produtos
 sem categorias, sem alterar o banco de desenvolvimento.
+
+### Categorias padrão na listagem
+
+`GET /categories` filtrava apenas pelo `company_id` da empresa e excluía as
+categorias padrão. Agora, um `JOIN` com o administrador identifica sua empresa e
+a condição inclui também `company_id IS NULL`. A listagem mantém o campo
+`active`, incluindo categorias inativas como antes; nenhuma funcionalidade nova
+de filtro foi adicionada. Um administrador inexistente retorna uma lista vazia.
+
+### Relatório e histórico de alterações
+
+O relatório tentava interpolar um array de logs diretamente no HTML, em vez de
+formatar cada registro. A consulta agora vincula o ID do produto como parâmetro,
+busca o nome do usuário por `LEFT JOIN` e ordena por `timestamp` e `id`.
+`ProductService::getFormattedLogs()` retorna as entradas no formato
+`(Nome, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss)`, separadas por vírgula
+e quebra de linha. As datas preservam o horário armazenado no banco, sem conversão
+de fuso. Ações desconhecidas preservam seu texto original.
+
+Registros cujo usuário não existe mais são preservados como `Usuário #ID`.
+Produtos sem logs mostram a coluna vazia. Todos os valores inseridos no HTML são
+escapados para que nomes e outros textos não sejam interpretados como marcação.
+
+### Quem atualizou o iphone 8 por último?
+
+No banco original e no backup, a última atualização do produto `4` (`iphone 8`)
+é o log `30`, realizado por **corin** (`admin_user_id = 3`) em
+**22/12/2023 às 18:12:10**, no horário registrado no banco.
+
+Consulta utilizada para reproduzir a investigação:
+
+```sql
+SELECT pl.id, pl.product_id, pl.admin_user_id, au.name, pl.action, pl.timestamp
+FROM product_log pl
+LEFT JOIN admin_user au ON au.id = pl.admin_user_id
+INNER JOIN product p ON p.id = pl.product_id
+WHERE p.title = 'iphone 8' AND pl.action = 'update'
+ORDER BY pl.timestamp DESC, pl.id DESC
+LIMIT 1;
+```
+
+**Limitação do histórico:** os logs existentes só informam a ação genérica
+`update`, sem registrar o campo alterado nem os valores anterior e novo. Portanto,
+corin é o autor da última atualização registrada; não é possível comprovar que
+essa atualização mudou o preço. A demanda específica de autoria da alteração de
+preço permanece sem comprovação histórica. Acrescentar auditoria de campos
+futuramente não permitiria reconstruir os valores anteriores ausentes.
+
+### Testes e causa da falha original
+
+`Product::hydrateByFetch()` convertia `price` para `int`, descartando os centavos
+antes de atribuir o valor ao atributo `float`. A correção usa `(float)`, preservando
+`99.99`, conforme a expectativa do teste original.
+
+Os testes que utilizam banco foram separados em `tests/Integration`; os testes
+isolados de `Product` permanecem em `tests/Unit`. A anotação `@dataProvider` é
+necessária no teste parametrizado para que o PHPUnit forneça seus argumentos.
+Os testes de integração criam tabelas e dados conhecidos em SQLite na memória,
+substituem temporariamente a conexão e restauram a anterior ao terminar. Nenhum
+dado ou estrutura do banco de desenvolvimento é alterado por esses testes.
+
+```sh
+# Todas as suítes
+docker compose exec app composer test
+
+# Apenas os testes unitários
+docker compose exec app php vendor/bin/phpunit --testsuite unit --testdox
+
+# Apenas os testes de integração
+docker compose exec app php vendor/bin/phpunit --testsuite integration --testdox
+```
+
+Para executar sem interromper nos breakpoints, adicione `-e XDEBUG_MODE=off`
+após `exec`. O aviso de depreciação do PHPUnit 9.5 no PHP atual é independente da
+falha de conversão de preço; a atualização dessa dependência fica para a etapa de
+refatoração. Estas correções não exigem migration, pois não modificam dados nem
+estrutura persistida do banco.
