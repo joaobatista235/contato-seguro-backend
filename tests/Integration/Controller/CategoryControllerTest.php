@@ -69,6 +69,10 @@ class CategoryControllerTest extends IntegrationTestCase
 
     public function testFailedDeletionKeepsTheCategoryAndItsProductsUnchanged(): void
     {
+        $translation = $this->request('POST', '/categories/2', ['translations' => [
+            ['lang_code' => 'en', 'label' => 'Translated furniture'],
+        ]]);
+        $this->assertSame(200, $translation->getStatusCode());
         $categories = $this->responseData($this->request('GET', '/categories'));
         $products = $this->responseData($this->request('GET', '/products'));
         $this->pdo->exec("CREATE TRIGGER reject_category_delete BEFORE DELETE ON category BEGIN SELECT RAISE(ABORT, 'category delete failed'); END");

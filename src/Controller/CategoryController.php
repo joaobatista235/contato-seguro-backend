@@ -33,7 +33,11 @@ class CategoryController
     {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $categories = $this->service->getAll($adminUserId);
+        try {
+            $categories = $this->service->getAll($adminUserId, $request->getQueryParams());
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
 
         return JsonResponse::create($response, $categories, 200);
     }
@@ -54,7 +58,11 @@ class CategoryController
             return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);
         }
 
-        $categories = $this->service->getOne($adminUserId, $categoryId);
+        try {
+            $categories = $this->service->getOne($adminUserId, $categoryId, $request->getQueryParams());
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
 
         return JsonResponse::create($response, $categories, 200);
     }
@@ -86,6 +94,36 @@ class CategoryController
         }
 
         return $response->withStatus(200);
+    }
+
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array{id: string} $args
+     * @return ResponseInterface
+     */
+    public function insertTranslations(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
+        $categoryId = IntegerValidator::positive($args['id'] ?? null);
+
+        if ($categoryId === null) {
+            return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);
+        }
+
+        $body = $request->getParsedBody();
+
+        if (!is_array($body)) {
+            return JsonResponse::create($response, ['error' => 'request body must contain translations'], 400);
+        }
+
+        try {
+            $created = $this->service->insertTranslations($categoryId, $body, $adminUserId);
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
+
+        return $response->withStatus($created ? 200 : 404);
     }
 
     /**

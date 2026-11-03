@@ -184,6 +184,11 @@ class CategoryRepository
             $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
             $stm->execute();
 
+            $query = "DELETE FROM category_translation WHERE category_id = :category_id";
+            $stm = $this->pdo->prepare($query);
+            $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+            $stm->execute();
+
             $query = "
                 DELETE FROM category
                 WHERE

@@ -105,7 +105,7 @@ Novas funcionalidades requisitadas pelo cliente
 > Preste atenção, funcionalidades que exijam mudanças no banco de dados devem conter tais modificações em uma ou mais **migrations**.
 
 ### Traduções
-- [ ] Quero disponibilizar meu sistema para fora do país, crie uma funcionalidade de cadastro de traduções para as categorias que segue o seguinte contrato:
+- [x] Quero disponibilizar meu sistema para fora do país, crie uma funcionalidade de cadastro de traduções para as categorias que segue o seguinte contrato:
 ```
 POST "$base_url/categories/:id"
 
@@ -122,10 +122,10 @@ POST "$base_url/categories/:id"
   ]
 }
 ```
-- [ ] Não deve ser possível cadastrar traduções repetidas, se uma única tradução repetida foi enviada, nenhuma deve persistir;
-- [ ] Ao buscar por produtos/categorias, o parâmetro adicional opcional "_`lang`_" pode ser passado para determinar a linguagem em que a categoria deve ser retornada;
-- [ ] Caso não haja categoria correspondente ou não seja especificado por parâmetro, retornar em inglês;
-- [ ] Inclua a rota e as modificações na coleção do Postman no repositório.
+- [x] Não deve ser possível cadastrar traduções repetidas, se uma única tradução repetida foi enviada, nenhuma deve persistir;
+- [x] Ao buscar por produtos/categorias, o parâmetro adicional opcional "_`lang`_" pode ser passado para determinar a linguagem em que a categoria deve ser retornada;
+- [x] Caso não haja categoria correspondente ou não seja especificado por parâmetro, retornar em inglês;
+- [x] Inclua a rota e as modificações na coleção do Postman no repositório.
 
 ### Estoque
 Além das informações já disponíveis do produto, desejo acrescentar também uma contagem de estoque para cada, a qual deve seguir algumas regras:
@@ -256,6 +256,26 @@ Exemplo de corpo para cadastro ou atualização:
 }
 ```
 
+#### Traduções de categorias
+
+`POST /categories/{id}` cadastra traduções de uma categoria ativa padrão ou da empresa do administrador:
+
+```json
+{
+  "translations": [
+    {"lang_code": "en", "label": "home"},
+    {"lang_code": "pt", "label": "casa"}
+  ]
+}
+```
+
+- Sucesso retorna 200. Idioma repetido no lote ou já cadastrado na categoria retorna 400, sem salvar nenhum item do lote.
+- `translations` deve ser uma lista não vazia; cada item exige `lang_code` e `label` não vazio. Códigos como `pt`, `en` e `pt-BR` são normalizados para minúsculas; `pt` e `PT` representam o mesmo idioma.
+- Categorias inexistentes, inativas ou de outra empresa retornam 404. Traduções de categorias padrão são compartilhadas entre empresas.
+- `GET /categories`, `GET /categories/{id}`, `GET /products` e `GET /products/{id}` aceitam `?lang=pt`. IDs e formato das respostas permanecem iguais; apenas o título das categorias muda.
+- Sem `lang` ou sem tradução nesse idioma, retorna a tradução `en`. Se ela não existir, usa o título original da categoria, considerado o texto em inglês. Cada categoria aplica esse fallback individualmente. Um `lang` inválido retorna 400.
+- `lang` pode ser combinado com os filtros e a ordenação de produtos. O relatório continua usando inglês.
+
 | HTTP | Uso |
 |---|---|
 | 200 | Operação concluída. |
@@ -292,6 +312,8 @@ A migration [PreventProductIdReuse](db/migrations/20261102000000_prevent_product
 O método `down()` restaura a chave original e remove essa proteção. Aplicação, rollback e reaplicação foram verificados em uma cópia do banco original, sem perda de dados. A migration previne novas colisões; não separa históricos que já tenham sido misturados.
 
 A migration [AddProductStock](db/migrations/20261103000000_add_product_stock.php) adiciona `product.stock` com valor padrão `0`, inclusive para produtos existentes. O `down()` remove a coluna e seus valores de estoque, preservando os demais dados.
+
+A migration [AddCategoryTranslations](db/migrations/20261103010000_add_category_translations.php) cria `category_translation`, com idioma único por categoria. O `down()` remove essa tabela e as traduções, preservando categorias e produtos. O cadastro do lote e a remoção das traduções junto à categoria usam transações.
 
 ### 6. Investigação do iphone 8
 

@@ -58,7 +58,11 @@ class ProductController
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
         }
 
-        $product = $this->service->getOne($productId, $adminUserId);
+        try {
+            $product = $this->service->getOne($productId, $adminUserId, $request->getQueryParams());
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
 
         if ($product === null) {
             return JsonResponse::create($response, ['error' => 'product not found'], 404);

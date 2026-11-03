@@ -7,6 +7,7 @@ namespace Contatoseguro\TesteBackend\Service;
 use Contatoseguro\TesteBackend\Model\Product;
 use Contatoseguro\TesteBackend\Repository\ProductRepository;
 use Contatoseguro\TesteBackend\Util\IntegerValidator;
+use Contatoseguro\TesteBackend\Util\LanguageCode;
 use InvalidArgumentException;
 
 class ProductService
@@ -26,11 +27,17 @@ class ProductService
      */
     private CategoryService $categoryService;
 
+    /**
+     * @var CategoryTranslationService
+     */
+    private CategoryTranslationService $translationService;
+
     public function __construct()
     {
         $this->repository = new ProductRepository();
         $this->adminUserService = new AdminUserService();
         $this->categoryService = new CategoryService();
+        $this->translationService = new CategoryTranslationService();
     }
 
     /**
@@ -40,6 +47,7 @@ class ProductService
      */
     public function getAll(int $adminUserId, array $queryParams = []): array
     {
+        $lang = LanguageCode::normalize($queryParams['lang'] ?? 'en');
         $filters = $this->validateFilters($queryParams);
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
@@ -55,6 +63,7 @@ class ProductService
             $filters['min_stock']
         );
         $products = [];
+        $labels = $this->translationService->getLabels(array_column($rows, 'category_id'), $lang);
 
         foreach ($rows as $row) {
             $productId = $row['id'];
@@ -66,7 +75,7 @@ class ProductService
             }
 
             if ($row['category_id'] !== null) {
-                $products[$productId]['category'][] = $row['category'];
+                $products[$productId]['category'][] = $labels[$row['category_id']] ?? $row['category'];
             }
         }
 
@@ -76,10 +85,12 @@ class ProductService
     /**
      * @param int $productId
      * @param int $adminUserId
+     * @param array<string, mixed> $queryParams
      * @return Product|null
      */
-    public function getOne(int $productId, int $adminUserId): ?Product
+    public function getOne(int $productId, int $adminUserId, array $queryParams = []): ?Product
     {
+        $lang = LanguageCode::normalize($queryParams['lang'] ?? 'en');
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
@@ -92,7 +103,7 @@ class ProductService
             return null;
         }
 
-        $categories = $this->categoryService->getProductCategory($productId, $adminUserId);
+        $categories = $this->categoryService->getProductCategory($productId, $adminUserId, $lang);
         $product->setCategory(array_column($categories, 'title'));
 
         return $product;

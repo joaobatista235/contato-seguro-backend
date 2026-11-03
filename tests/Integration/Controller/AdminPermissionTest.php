@@ -39,6 +39,7 @@ class AdminPermissionTest extends IntegrationTestCase
             'list categories' => ['GET', '/categories', null],
             'category details' => ['GET', '/categories/2', null],
             'create category' => ['POST', '/categories', $category],
+            'create translations' => ['POST', '/categories/2', ['translations' => [['lang_code' => 'pt', 'label' => 'Móveis']]]],
             'update category' => ['PUT', '/categories/2', $category],
             'delete category' => ['DELETE', '/categories/2', null],
             'list products' => ['GET', '/products', null],

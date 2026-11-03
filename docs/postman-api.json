@@ -76,7 +76,7 @@
 								""
 							]
 						},
-						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo, order=asc|desc (data de cadastro) e min_stock=inteiro não negativo (mínimo inclusivo de estoque). O campo stock é retornado em cada produto. Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc."
+						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo, order=asc|desc (data de cadastro) e min_stock=inteiro não negativo (mínimo inclusivo de estoque). O campo stock é retornado em cada produto. Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
 					},
 					"response": []
 				},
@@ -113,7 +113,7 @@
 								"10"
 							]
 						},
-						"description": "GET /products/{id}: retorna stock como inteiro não negativo. O campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []."
+						"description": "GET /products/{id}: retorna stock como inteiro não negativo. O campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
 					},
 					"response": []
 				},
@@ -283,7 +283,7 @@
 							}
 						],
 						"url": "http://{{base_url}}{{categories}}",
-						"description": "GET /categories (sem barra final): lista as categorias padrão compartilhadas e as personalizadas da empresa do administrador informado em admin_user_id. Categorias de outras empresas não são incluídas."
+						"description": "GET /categories (sem barra final): lista as categorias padrão compartilhadas e as personalizadas da empresa do administrador informado em admin_user_id. Categorias de outras empresas não são incluídas. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
 					},
 					"response": []
 				},
@@ -319,7 +319,8 @@
 							"path": [
 								"4"
 							]
-						}
+						},
+						"description": "GET /categories/{id}: retorna a categoria em uma lista. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
 					},
 					"response": []
 				},
@@ -454,6 +455,34 @@
 								"7"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "insertTranslations",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"translations\": [\n    {\n      \"lang_code\": \"en\",\n      \"label\": \"home\"\n    },\n    {\n      \"lang_code\": \"pt\",\n      \"label\": \"casa\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://{{base_url}}{{categories}}/1",
+						"description": "POST /categories/{id}: cadastra traduções de categoria ativa padrão ou da empresa do administrador. 200 em sucesso; 400 para corpo inválido ou idioma repetido no lote ou já cadastrado, sem persistir nenhum item. 404 para categoria inexistente, inativa ou de outra empresa. Traduções de categorias padrão são compartilhadas. Labels são textos não vazios; idiomas são normalizados para minúsculas."
 					},
 					"response": []
 				}

@@ -6,6 +6,7 @@ namespace Contatoseguro\TesteBackend\Service;
 
 use Contatoseguro\TesteBackend\Model\Category;
 use Contatoseguro\TesteBackend\Repository\CategoryRepository;
+use Contatoseguro\TesteBackend\Util\LanguageCode;
 use InvalidArgumentException;
 
 class CategoryService
@@ -20,10 +21,16 @@ class CategoryService
      */
     private AdminUserService $adminUserService;
 
+    /**
+     * @var CategoryTranslationService
+     */
+    private CategoryTranslationService $translationService;
+
     public function __construct()
     {
         $this->repository = new CategoryRepository();
         $this->adminUserService = new AdminUserService();
+        $this->translationService = new CategoryTranslationService();
     }
 
     /**
@@ -43,41 +50,50 @@ class CategoryService
 
     /**
      * @param int $adminUserId
+     * @param array<string, mixed> $queryParams
      * @return Category[]
      */
-    public function getAll(int $adminUserId): array
+    public function getAll(int $adminUserId, array $queryParams = []): array
     {
+        $lang = LanguageCode::normalize($queryParams['lang'] ?? 'en');
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
         }
 
-        return $this->repository->findAllForCompany($companyId);
+        $categories = $this->repository->findAllForCompany($companyId);
+
+        return $this->translateCategories($categories, $lang);
     }
 
     /**
      * @param int $adminUserId
      * @param int $categoryId
+     * @param array<string, mixed> $queryParams
      * @return Category[]
      */
-    public function getOne(int $adminUserId, int $categoryId): array
+    public function getOne(int $adminUserId, int $categoryId, array $queryParams = []): array
     {
+        $lang = LanguageCode::normalize($queryParams['lang'] ?? 'en');
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
         }
 
-        return $this->repository->findOneForCompany($categoryId, $companyId);
+        $categories = $this->repository->findOneForCompany($categoryId, $companyId);
+
+        return $this->translateCategories($categories, $lang);
     }
 
     /**
      * @param int $productId
      * @param int $adminUserId
+     * @param string $lang
      * @return array<int, array{id: int, title: string}>
      */
-    public function getProductCategory(int $productId, int $adminUserId): array
+    public function getProductCategory(int $productId, int $adminUserId, string $lang = 'en'): array
     {
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
@@ -85,7 +101,41 @@ class CategoryService
             return [];
         }
 
-        return $this->repository->findByProduct($productId, $companyId);
+        $categories = $this->repository->findByProduct($productId, $companyId);
+        $labels = $this->translationService->getLabels(array_column($categories, 'id'), $lang);
+
+        foreach ($categories as $index => $category) {
+            $categories[$index]['title'] = $labels[$category['id']] ?? $category['title'];
+        }
+
+        return $categories;
+    }
+
+    /**
+     * @param Category[] $categories
+     * @param string $lang
+     * @return Category[]
+     */
+    private function translateCategories(array $categories, string $lang): array
+    {
+        $labels = $this->translationService->getLabels(array_column($categories, 'id'), $lang);
+
+        foreach ($categories as $category) {
+            $category->title = $labels[$category->id] ?? $category->title;
+        }
+
+        return $categories;
+    }
+
+    /**
+     * @param int $categoryId
+     * @param array<string, mixed> $body
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function insertTranslations(int $categoryId, array $body, int $adminUserId): bool
+    {
+        return $this->translationService->insertTranslations($categoryId, $body, $adminUserId);
     }
 
     /**
