@@ -129,9 +129,9 @@ POST "$base_url/categories/:id"
 
 ### Estoque
 Além das informações já disponíveis do produto, desejo acrescentar também uma contagem de estoque para cada, a qual deve seguir algumas regras:
-- [ ] Posso cadastrar a quantidade do estoque assim que cadastro um produto, mas se não for informado assumo que o estoque é _0_;
-- [ ] Posso atualizar o estoque de um produto;
-- [ ] Ao buscar um produto, posso filtrar por uma quantidade mínima em estoque.
+- [x] Posso cadastrar a quantidade do estoque assim que cadastro um produto, mas se não for informado assumo que o estoque é _0_;
+- [x] Posso atualizar o estoque de um produto;
+- [x] Ao buscar um produto, posso filtrar por uma quantidade mínima em estoque.
 
 ### Comentários
 Quero que os usuários do sistema possam discutir sobre os produtos em uma área de comentários.
@@ -227,15 +227,34 @@ Parâmetros opcionais de `GET /products`:
 |---|---|---|
 | `active` | `1`, `0`, `true`, `false` | Filtra ativos ou inativos. Sem o parâmetro, retorna ambos. |
 | `category_id` | Inteiro positivo | Filtra pela categoria, mantendo todas as categorias disponíveis no produto retornado. |
+| `min_stock` | Inteiro maior ou igual a zero | Retorna produtos com estoque igual ou superior ao mínimo. |
 | `order` | `asc`, `desc` | Ordena por `created_at`, do mais antigo ou mais recente. Aceita maiúsculas e minúsculas. |
 
 ```http
 GET /products?active=0
 GET /products?category_id=2
 GET /products?active=1&category_id=2&order=desc
+GET /products?min_stock=5&active=1&order=desc
 ```
 
 Os parâmetros podem ser combinados. Sem `order`, mantém a ordem por ID; datas iguais usam o ID crescente como desempate. Categorias inativas, inexistentes ou de outra empresa não retornam produtos. Sem correspondências, a resposta é `[]` com status 200; parâmetros inválidos retornam 400. A ordenação usa opções fixas permitidas, e os valores dos filtros são vinculados com `bindValue()`.
+
+#### Estoque
+
+`stock` é um inteiro não negativo, retornado na listagem e na consulta individual. No `POST /products`, é opcional e assume `0`. No `PUT /products/{id}`, o valor informado substitui o estoque atual; omitir o campo preserva a quantidade. Os demais campos obrigatórios do produto continuam exigidos. Valores inválidos retornam 400.
+
+Exemplo de corpo para cadastro ou atualização:
+
+```json
+{
+  "company_id": 1,
+  "title": "Produto",
+  "price": 123.4,
+  "active": true,
+  "category_id": 1,
+  "stock": 10
+}
+```
 
 | HTTP | Uso |
 |---|---|
@@ -271,6 +290,8 @@ O backup original `db/db-backup.sqlite3` está incluído no Git. O banco de trab
 A migration [PreventProductIdReuse](db/migrations/20261102000000_prevent_product_id_reuse.php) configura `product.id` com `AUTOINCREMENT`, reservando também os IDs encontrados nos logs históricos. Preserva registros, índices, triggers e a referência à empresa.
 
 O método `down()` restaura a chave original e remove essa proteção. Aplicação, rollback e reaplicação foram verificados em uma cópia do banco original, sem perda de dados. A migration previne novas colisões; não separa históricos que já tenham sido misturados.
+
+A migration [AddProductStock](db/migrations/20261103000000_add_product_stock.php) adiciona `product.stock` com valor padrão `0`, inclusive para produtos existentes. O `down()` remove a coluna e seus valores de estoque, preservando os demais dados.
 
 ### 6. Investigação do iphone 8
 

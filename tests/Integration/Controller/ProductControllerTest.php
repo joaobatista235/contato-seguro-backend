@@ -110,7 +110,7 @@ class ProductControllerTest extends IntegrationTestCase
         $read = $this->request('GET', '/products/' . $id);
         $updated = $this->request('PUT', '/products/' . $id, [
             'company_id' => 42, 'title' => 'Changed', 'price' => 10,
-            'active' => true, 'category_id' => 1,
+            'active' => true, 'category_id' => 1, 'stock' => 12,
         ]);
         $deleted = $this->request('DELETE', '/products/' . $id);
 
@@ -212,7 +212,7 @@ class ProductControllerTest extends IntegrationTestCase
 
         $response = $this->request($method, $path, [
             'company_id' => 42, 'title' => 'Changed', 'price' => 10,
-            'active' => true, 'category_id' => 1,
+            'active' => true, 'category_id' => 1, 'stock' => 12,
         ]);
 
         $this->assertSame(500, $response->getStatusCode());

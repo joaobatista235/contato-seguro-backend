@@ -26,15 +26,16 @@ class ProductRepository
      * @param bool|null $active
      * @param int|null $categoryId
      * @param string|null $order
+     * @param int|null $minStock
      * @return array<int, array<string, mixed>>
      */
-    public function findAllForCompany(int $companyId, ?bool $active = null, ?int $categoryId = null, ?string $order = null): array
+    public function findAllForCompany(int $companyId, ?bool $active = null, ?int $categoryId = null, ?string $order = null, ?int $minStock = null): array
     {
-        [$where, $join, $bind, $orderBy] = $this->buildWhere($companyId, $active, $categoryId, $order);
+        [$where, $join, $bind, $orderBy] = $this->buildWhere($companyId, $active, $categoryId, $order, $minStock);
 
         $query = "
             SELECT
-                DISTINCT p.id, p.company_id, p.title, p.price, p.active, p.created_at,
+                DISTINCT p.id, p.company_id, p.title, p.price, p.active, p.created_at, p.stock,
                 c.id AS category_id, c.title AS category
             FROM product p
             {$join}
@@ -63,9 +64,10 @@ class ProductRepository
      * @param bool|null $active
      * @param int|null $categoryId
      * @param string|null $order
+     * @param int|null $minStock
      * @return array{0: string, 1: string, 2: array<string, array{0: int, 1: int}>, 3: string}
      */
-    private function buildWhere(int $companyId, ?bool $active, ?int $categoryId, ?string $order): array
+    private function buildWhere(int $companyId, ?bool $active, ?int $categoryId, ?string $order, ?int $minStock): array
     {
         $join = '';
         $conditions = ['p.company_id = :company_id'];
@@ -85,6 +87,11 @@ class ProductRepository
         if ($active !== null) {
             $conditions[] = 'p.active = :active';
             $bind[':active'] = [(int)$active, PDO::PARAM_INT];
+        }
+
+        if ($minStock !== null) {
+            $conditions[] = 'p.stock >= :min_stock';
+            $bind[':min_stock'] = [$minStock, PDO::PARAM_INT];
         }
 
         $where = implode(" AND\n                ", $conditions);
@@ -107,7 +114,7 @@ class ProductRepository
         $query = "
             SELECT
                 id, company_id AS companyId, title, COALESCE(price, 0) AS price,
-                active, created_at AS createdAt
+                active, created_at AS createdAt, stock
             FROM product
             WHERE
                 id = :product_id AND
@@ -129,13 +136,14 @@ class ProductRepository
      * @param float $price
      * @param bool $active
      * @param int $companyId
+     * @param int $stock
      * @return int
      */
-    public function insert(string $title, float $price, bool $active, int $companyId): int
+    public function insert(string $title, float $price, bool $active, int $companyId, int $stock): int
     {
         $query = "
-            INSERT INTO product (company_id, title, price, active)
-            VALUES (:company_id, :title, :price, :active)
+            INSERT INTO product (company_id, title, price, active, stock)
+            VALUES (:company_id, :title, :price, :active, :stock)
         ";
 
         $stm = $this->pdo->prepare($query);
@@ -143,6 +151,7 @@ class ProductRepository
         $stm->bindValue(':title', $title, PDO::PARAM_STR);
         $stm->bindValue(':price', (string)$price, PDO::PARAM_STR);
         $stm->bindValue(':active', (int)$active, PDO::PARAM_INT);
+        $stm->bindValue(':stock', $stock, PDO::PARAM_INT);
         $stm->execute();
 
         return (int)$this->pdo->lastInsertId();
@@ -154,16 +163,22 @@ class ProductRepository
      * @param float $price
      * @param bool $active
      * @param int $companyId
+     * @param int|null $stock
      * @return bool
      */
-    public function update(int $productId, string $title, float $price, bool $active, int $companyId): bool
+    public function update(int $productId, string $title, float $price, bool $active, int $companyId, ?int $stock): bool
     {
+        $assignments = ['title = :title', 'price = :price', 'active = :active'];
+
+        if ($stock !== null) {
+            $assignments[] = 'stock = :stock';
+        }
+
+        $set = implode(",\n                ", $assignments);
         $query = "
             UPDATE product
             SET
-                title = :title,
-                price = :price,
-                active = :active
+                {$set}
             WHERE
                 id = :product_id AND
                 company_id = :company_id
@@ -175,6 +190,11 @@ class ProductRepository
         $stm->bindValue(':active', (int)$active, PDO::PARAM_INT);
         $stm->bindValue(':product_id', $productId, PDO::PARAM_INT);
         $stm->bindValue(':company_id', $companyId, PDO::PARAM_INT);
+
+        if ($stock !== null) {
+            $stm->bindValue(':stock', $stock, PDO::PARAM_INT);
+        }
+
         $stm->execute();
 
         return $stm->rowCount() > 0;

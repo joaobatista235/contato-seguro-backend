@@ -67,14 +67,21 @@ abstract class IntegrationTestCase extends TestCase
     private function applyMigrations(): void
     {
         require_once dirname(__DIR__, 2) . '/db/migrations/20261102000000_prevent_product_id_reuse.php';
+        require_once dirname(__DIR__, 2) . '/db/migrations/20261103000000_add_product_stock.php';
         $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         try {
             $adapter = new SQLiteAdapter(['memory' => true]);
             $adapter->setConnection($this->pdo);
-            $migration = new \PreventProductIdReuse('testing', 20261102000000);
-            $migration->setAdapter($adapter);
-            $migration->up();
+            $migrations = [
+                new \PreventProductIdReuse('testing', 20261102000000),
+                new \AddProductStock('testing', 20261103000000),
+            ];
+
+            foreach ($migrations as $migration) {
+                $migration->setAdapter($adapter);
+                $migration->up();
+            }
         } finally {
             $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
         }

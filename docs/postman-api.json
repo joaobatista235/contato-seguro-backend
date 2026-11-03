@@ -76,7 +76,7 @@
 								""
 							]
 						},
-						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo e order=asc|desc (data de cadastro). Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc."
+						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo, order=asc|desc (data de cadastro) e min_stock=inteiro não negativo (mínimo inclusivo de estoque). O campo stock é retornado em cada produto. Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc."
 					},
 					"response": []
 				},
@@ -113,7 +113,7 @@
 								"10"
 							]
 						},
-						"description": "GET /products/{id}: o campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []."
+						"description": "GET /products/{id}: retorna stock como inteiro não negativo. O campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []."
 					},
 					"response": []
 				},
@@ -135,6 +135,7 @@
 					},
 					"request": {
 						"method": "POST",
+						"description": "POST /products: stock é opcional e assume 0 quando omitido.",
 						"header": [
 							{
 								"key": "Content-Type",
@@ -147,7 +148,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1\n}",
+							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1,\n\t\"stock\": 10\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -184,6 +185,7 @@
 					},
 					"request": {
 						"method": "PUT",
+						"description": "PUT /products/{id}: stock substitui o estoque atual; omitir preserva a quantidade. Os demais campos obrigatórios continuam exigidos.",
 						"header": [
 							{
 								"key": "Content-Type",
@@ -196,7 +198,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1\n}",
+							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1,\n\t\"stock\": 10\n}",
 							"options": {
 								"raw": {
 									"language": "json"

@@ -18,6 +18,7 @@ class Product
      * @param float $price
      * @param bool $active
      * @param string $createdAt
+     * @param int $stock
      */
     public function __construct(
         public int $id = 0,
@@ -25,7 +26,8 @@ class Product
         public string $title = '',
         public float $price = 0.0,
         public bool $active = false,
-        public string $createdAt = ''
+        public string $createdAt = '',
+        public int $stock = 0
     ) {
     }
 
@@ -41,7 +43,8 @@ class Product
             (string)$fetch->title,
             (float)$fetch->price,
             (bool)$fetch->active,
-            (string)$fetch->created_at
+            (string)$fetch->created_at,
+            (int)($fetch->stock ?? 0)
         );
     }
 

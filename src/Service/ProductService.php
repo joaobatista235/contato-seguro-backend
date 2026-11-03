@@ -51,7 +51,8 @@ class ProductService
             $companyId,
             $filters['active'],
             $filters['category_id'],
-            $filters['order']
+            $filters['order'],
+            $filters['min_stock']
         );
         $products = [];
 
@@ -118,7 +119,13 @@ class ProductService
         }
 
         return $this->repository->transaction(function () use ($body, $companyId, $categoryId, $adminUserId): bool {
-            $productId = $this->repository->insert(trim($body['title']), (float)$body['price'], (bool)$body['active'], $companyId);
+            $productId = $this->repository->insert(
+                trim($body['title']),
+                (float)$body['price'],
+                (bool)$body['active'],
+                $companyId,
+                $body['stock'] ?? 0
+            );
             $this->repository->insertCategory($productId, $categoryId);
             $this->repository->insertLog($productId, $adminUserId, 'create');
 
@@ -148,7 +155,14 @@ class ProductService
         }
 
         return $this->repository->transaction(function () use ($productId, $body, $companyId, $categoryId, $adminUserId): bool {
-            $updated = $this->repository->update($productId, trim($body['title']), (float)$body['price'], (bool)$body['active'], $companyId);
+            $updated = $this->repository->update(
+                $productId,
+                trim($body['title']),
+                (float)$body['price'],
+                (bool)$body['active'],
+                $companyId,
+                $body['stock'] ?? null
+            );
 
             if (!$updated) {
                 return false;
@@ -253,17 +267,22 @@ class ProductService
         if (IntegerValidator::positive($body['category_id'] ?? null) === null) {
             throw new InvalidArgumentException('category_id must be a positive integer');
         }
+
+        if (array_key_exists('stock', $body) && (!is_int($body['stock']) || $body['stock'] < 0)) {
+            throw new InvalidArgumentException('stock must be a non-negative integer');
+        }
     }
 
     /**
      * @param array<string, mixed> $queryParams
-     * @return array{active: bool|null, category_id: int|null, order: string|null}
+     * @return array{active: bool|null, category_id: int|null, order: string|null, min_stock: int|null}
      */
     private function validateFilters(array $queryParams): array
     {
         $active = null;
         $categoryId = null;
         $order = null;
+        $minStock = null;
 
         if (array_key_exists('active', $queryParams)) {
             if (!in_array($queryParams['active'], ['0', '1', 'false', 'true'], true)) {
@@ -293,6 +312,14 @@ class ProductService
             }
         }
 
-        return ['active' => $active, 'category_id' => $categoryId, 'order' => $order];
+        if (array_key_exists('min_stock', $queryParams)) {
+            $minStock = IntegerValidator::nonNegative($queryParams['min_stock']);
+
+            if ($minStock === null) {
+                throw new InvalidArgumentException('min_stock must be a non-negative integer');
+            }
+        }
+
+        return ['active' => $active, 'category_id' => $categoryId, 'order' => $order, 'min_stock' => $minStock];
     }
 }

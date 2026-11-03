@@ -5,6 +5,7 @@ Comece pelos métodos que começam com `test` em `Integration/Controller`:
 - `CategoryControllerTest.php`: cadastro, edição, exclusão, consultas e validação dos dados de categorias.
 - `ProductControllerTest.php`: consultas e gravações de produtos, categorias, isolamento por empresa e transações.
 - `ProductFiltersTest.php`: filtros por ativo/inativo e categoria, ordenação por data, combinações e parâmetros inválidos.
+- `ProductStockTest.php`: estoque inicial opcional, atualização, preservação quando omitido, filtro mínimo e validações.
 - `CompanyControllerTest.php`: consultas de empresas e isolamento de acesso.
 - `ReportControllerTest.php`: formatação dos logs e proteção do HTML.
 - `AdminPermissionTest.php`: cabeçalhos e permissões de acesso de todas as 13 rotas da API.
@@ -29,14 +30,14 @@ $this->assertSame(200, $response->getStatusCode());
 ## Arquivos de apoio
 
 - `Fixtures/schema.sql` define uma única estrutura de banco para os testes.
-- `Fixtures/categories.sql`, `products.sql`, `product_filters.sql` e `report.sql` contêm os dados de cada funcionalidade.
+- `Fixtures/categories.sql`, `products.sql`, `product_filters.sql`, `product_stock.sql` e `report.sql` contêm os dados de cada funcionalidade.
 - `Support/IntegrationTestCase.php` cria um SQLite em memória para cada teste, carrega a estrutura, os middlewares globais e as rotas com suas verificações de permissão.
 - `bootstrap.php` carrega o Composer e a classe de apoio.
 
 O `setUp()` de cada classe carrega seus dados. Os cenários são independentes: as
 gravações de um teste não passam para o próximo, e a conexão anterior é restaurada
 ao terminar. Os arquivos SQL de testes não são migrations da aplicação. A classe
-de apoio aplica a migration real de proteção dos IDs após criar a estrutura,
+de apoio aplica as migrations reais de proteção dos IDs e estoque após criar a estrutura,
 antes de carregar os dados de cada cenário.
 
 ## Requisições e verificações
