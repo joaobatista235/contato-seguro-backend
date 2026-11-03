@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Contatoseguro\TesteBackend\Controller\CategoryController;
 use Contatoseguro\TesteBackend\Controller\CompanyController;
+use Contatoseguro\TesteBackend\Controller\CommentController;
 use Contatoseguro\TesteBackend\Controller\ProductController;
 use Contatoseguro\TesteBackend\Controller\ReportController;
 use Contatoseguro\TesteBackend\Middleware\AdminPermissionMiddleware;
@@ -23,6 +24,11 @@ $app->group('/products', function (RouteCollectorProxy $group): void {
     $group->post('', [ProductController::class, 'insertOne']);
     $group->put('/{id}', [ProductController::class, 'updateOne']);
     $group->delete('/{id}', [ProductController::class, 'deleteOne']);
+    $group->get('/{id}/comments', [CommentController::class, 'getAll']);
+    $group->post('/{id}/comments', [CommentController::class, 'insertOne']);
+    $group->post('/{id}/comments/{comment_id}/replies', [CommentController::class, 'reply']);
+    $group->delete('/{id}/comments/{comment_id}', [CommentController::class, 'deleteOne']);
+    $group->post('/{id}/comments/{comment_id}/likes', [CommentController::class, 'like']);
 })->add(AdminPermissionMiddleware::class);
 
 $app->group('/categories', function (RouteCollectorProxy $group): void {

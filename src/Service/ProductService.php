@@ -6,6 +6,7 @@ namespace Contatoseguro\TesteBackend\Service;
 
 use Contatoseguro\TesteBackend\Model\Product;
 use Contatoseguro\TesteBackend\Repository\ProductRepository;
+use Contatoseguro\TesteBackend\Repository\CommentRepository;
 use Contatoseguro\TesteBackend\Util\IntegerValidator;
 use Contatoseguro\TesteBackend\Util\LanguageCode;
 use InvalidArgumentException;
@@ -32,12 +33,18 @@ class ProductService
      */
     private CategoryTranslationService $translationService;
 
+    /**
+     * @var CommentRepository
+     */
+    private CommentRepository $commentRepository;
+
     public function __construct()
     {
         $this->repository = new ProductRepository();
         $this->adminUserService = new AdminUserService();
         $this->categoryService = new CategoryService();
         $this->translationService = new CategoryTranslationService();
+        $this->commentRepository = new CommentRepository();
     }
 
     /**
@@ -201,6 +208,7 @@ class ProductService
         }
 
         return $this->repository->transaction(function () use ($productId, $companyId, $adminUserId): bool {
+            $this->commentRepository->deleteForProduct($productId);
             $this->repository->deleteCategories($productId);
 
             if (!$this->repository->delete($productId, $companyId)) {

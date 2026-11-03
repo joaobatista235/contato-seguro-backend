@@ -47,6 +47,11 @@ class AdminPermissionTest extends IntegrationTestCase
             'create product' => ['POST', '/products', $product],
             'update product' => ['PUT', '/products/1', $product],
             'delete product' => ['DELETE', '/products/1', null],
+            'list comments' => ['GET', '/products/1/comments', null],
+            'create comment' => ['POST', '/products/1/comments', ['content' => 'Comment']],
+            'reply to comment' => ['POST', '/products/1/comments/1/replies', ['content' => 'Reply']],
+            'delete comment' => ['DELETE', '/products/1/comments/1', null],
+            'like comment' => ['POST', '/products/1/comments/1/likes', null],
             'list companies' => ['GET', '/companies', null],
             'company details' => ['GET', '/companies/42', null],
             'report' => ['GET', '/report', null],
@@ -70,6 +75,7 @@ class AdminPermissionTest extends IntegrationTestCase
             'zero' => ['0'],
             'negative' => ['-1'],
             'SQL text' => ['7 OR 1=1'],
+            'multiple values' => ['7,8'],
         ];
     }
 }

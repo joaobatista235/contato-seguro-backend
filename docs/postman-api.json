@@ -487,6 +487,112 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "comments",
+			"item": [
+				{
+					"name": "insertOne",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments",
+						"description": "Cria comentário no produto da empresa do administrador. Retorna 201 com {\"id\": ID}. Copie esse ID para a variável comment_id da coleção para usar as próximas rotas. Content deve ser texto não vazio; autor é definido por admin_user_id. 400 para dados inválidos; 404 para produto indisponível.",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"O que vocês acharam deste produto?\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reply",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/replies",
+						"description": "Responde diretamente um comentário ou resposta do mesmo produto. Retorna 201 com {\"id\": ID}. 400 para dados inválidos; 404 para produto ou comentário indisponível, removido ou pertencente a outro produto.",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Gostei do produto.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getAll",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							}
+						],
+						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments",
+						"description": "Retorna 200 com {\"product_id\": ID, \"comments\": [...]}. Cada item contém id, parent_id, admin_user_id, user_name, content, created_at, deleted, likes e replies. Respostas são aninhadas em replies; ordem por data e ID. Sem comentários: comments é []. Comentários removidos têm content null, deleted true e likes 0, preservando as respostas. 404 para produto indisponível."
+					},
+					"response": []
+				},
+				{
+					"name": "deleteOne",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							}
+						],
+						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}",
+						"description": "Remove apenas comentário do próprio autor e retorna 200. Preserva um marcador sem conteúdo para manter as respostas. 403 para outro autor da mesma empresa; 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
+					},
+					"response": []
+				},
+				{
+					"name": "like",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "admin_user_id",
+								"value": "1"
+							}
+						],
+						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/likes",
+						"description": "Curte comentário ou resposta disponível do produto. Retorna 200 com {\"liked\": true}. Uma curtida por administrador; repetir mantém a contagem. É permitido curtir o próprio comentário. 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [
@@ -509,6 +615,14 @@
 		{
 			"key": "report",
 			"value": "/report"
+		},
+		{
+			"key": "product_id",
+			"value": "1"
+		},
+		{
+			"key": "comment_id",
+			"value": "1"
 		}
 	]
 }

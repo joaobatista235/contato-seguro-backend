@@ -137,11 +137,11 @@ Além das informações já disponíveis do produto, desejo acrescentar também 
 Quero que os usuários do sistema possam discutir sobre os produtos em uma área de comentários.
 
 Para isso, novas rotas devem ser criadas:
-- [ ] Criar um novo comentário no produto
-- [ ] Responder um comentário já realizado (todo comentário pode ser diretamente respondido)
-- [ ] Remover um comentário feito por mim
-- [ ] Curtir um comentário
-- [ ] Listar todos os comentários de um produto em um objeto com hierarquia de comentários
+- [x] Criar um novo comentário no produto
+- [x] Responder um comentário já realizado (todo comentário pode ser diretamente respondido)
+- [x] Remover um comentário feito por mim
+- [x] Curtir um comentário
+- [x] Listar todos os comentários de um produto em um objeto com hierarquia de comentários
 
 ##
 **Seu trabalho é atender às demandas solicitadas pelo cliente.**
@@ -276,11 +276,34 @@ Exemplo de corpo para cadastro ou atualização:
 - Sem `lang` ou sem tradução nesse idioma, retorna a tradução `en`. Se ela não existir, usa o título original da categoria, considerado o texto em inglês. Cada categoria aplica esse fallback individualmente. Um `lang` inválido retorna 400.
 - `lang` pode ser combinado com os filtros e a ordenação de produtos. O relatório continua usando inglês.
 
+#### Comentários de produtos
+
+Todas as rotas usam `admin_user_id` e respeitam a empresa do produto:
+
+| Método | Rota | Ação |
+|---|---|---|
+| POST | `/products/{id}/comments` | Cria um comentário. |
+| POST | `/products/{id}/comments/{comment_id}/replies` | Responde um comentário ou uma resposta. |
+| GET | `/products/{id}/comments` | Lista a discussão em hierarquia. |
+| DELETE | `/products/{id}/comments/{comment_id}` | Remove o comentário do próprio autor. |
+| POST | `/products/{id}/comments/{comment_id}/likes` | Curte o comentário. |
+
+Cadastro e resposta recebem `{"content": "Texto do comentário"}` e retornam 201 com `{"id": 1}`. O texto deve ser uma string não vazia e é salvo sem espaços nas extremidades. O autor vem do header; o produto e o comentário respondido vêm da rota.
+
+A listagem retorna `{"product_id": 1, "comments": [...]}`. Cada comentário contém `id`, `parent_id`, `admin_user_id`, `user_name`, `content`, `created_at`, `deleted`, `likes` e `replies`. As respostas ficam dentro de `replies`, inclusive em níveis seguintes. A ordem é por data de criação e ID; produtos sem comentários retornam `comments: []`.
+
+- A remoção retorna 200. Apenas o autor pode remover; outro autor da mesma empresa recebe 403.
+- Para preservar respostas de outros autores, o comentário removido permanece como marcador com `deleted: true`, `content: null` e `likes: 0`. Não aceita novas respostas ou curtidas.
+- Curtidas retornam 200 com `{"liked": true}`. Cada administrador conta uma vez por comentário; repetir a requisição mantém a contagem. Também é possível curtir respostas e comentários próprios.
+- Produto indisponível, comentário inexistente, removido ou pertencente a outro produto retorna 404. IDs e conteúdo inválidos retornam 400.
+- Excluir um produto remove seus comentários e curtidas na mesma transação da exclusão.
+
 | HTTP | Uso |
 |---|---|
 | 200 | Operação concluída. |
+| 201 | Comentário ou resposta criado; o JSON informa o ID. |
 | 400 | Cabeçalho, ID ou corpo inválido. |
-| 403 | Administrador inexistente ou sem empresa. |
+| 403 | Administrador inexistente, sem empresa ou tentando remover comentário de outro autor. |
 | 404 | Rota inexistente ou recurso indisponível ao administrador. |
 | 405 | Método HTTP não permitido; o header `Allow` informa os métodos aceitos. |
 | 500 | Falha interna, com a mensagem genérica `Internal server error`. |
@@ -314,6 +337,8 @@ O método `down()` restaura a chave original e remove essa proteção. Aplicaç�
 A migration [AddProductStock](db/migrations/20261103000000_add_product_stock.php) adiciona `product.stock` com valor padrão `0`, inclusive para produtos existentes. O `down()` remove a coluna e seus valores de estoque, preservando os demais dados.
 
 A migration [AddCategoryTranslations](db/migrations/20261103010000_add_category_translations.php) cria `category_translation`, com idioma único por categoria. O `down()` remove essa tabela e as traduções, preservando categorias e produtos. O cadastro do lote e a remoção das traduções junto à categoria usam transações.
+
+A migration [AddProductComments](db/migrations/20261103020000_add_product_comments.php) cria `product_comment` e `product_comment_like`, com uma curtida por administrador em cada comentário. O `down()` remove essas tabelas e seus dados, preservando os produtos e as demais funcionalidades.
 
 ### 6. Investigação do iphone 8
 

@@ -69,6 +69,7 @@ abstract class IntegrationTestCase extends TestCase
         require_once dirname(__DIR__, 2) . '/db/migrations/20261102000000_prevent_product_id_reuse.php';
         require_once dirname(__DIR__, 2) . '/db/migrations/20261103000000_add_product_stock.php';
         require_once dirname(__DIR__, 2) . '/db/migrations/20261103010000_add_category_translations.php';
+        require_once dirname(__DIR__, 2) . '/db/migrations/20261103020000_add_product_comments.php';
         $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         try {
@@ -78,6 +79,7 @@ abstract class IntegrationTestCase extends TestCase
                 new \PreventProductIdReuse('testing', 20261102000000),
                 new \AddProductStock('testing', 20261103000000),
                 new \AddCategoryTranslations('testing', 20261103010000),
+                new \AddProductComments('testing', 20261103020000),
             ];
 
             foreach ($migrations as $migration) {
