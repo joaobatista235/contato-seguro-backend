@@ -7,6 +7,7 @@ namespace Contatoseguro\TesteBackend\Repository;
 use Contatoseguro\TesteBackend\Config\DB;
 use Contatoseguro\TesteBackend\Model\Category;
 use PDO;
+use Throwable;
 
 class CategoryRepository
 {
@@ -18,22 +19,6 @@ class CategoryRepository
     public function __construct()
     {
         $this->pdo = DB::connect();
-    }
-
-    /**
-     * @param int $adminUserId
-     * @return int|null
-     */
-    public function findCompanyIdByAdminUserId(int $adminUserId): ?int
-    {
-        $query = "SELECT company_id FROM admin_user WHERE id = :admin_user_id";
-
-        $stm = $this->pdo->prepare($query);
-        $stm->bindValue(':admin_user_id', $adminUserId, PDO::PARAM_INT);
-        $stm->execute();
-
-        $companyId = $stm->fetchColumn();
-        return !empty($companyId) ? (int)$companyId : null;
     }
 
     /**
@@ -167,16 +152,63 @@ class CategoryRepository
      */
     public function delete(int $categoryId, int $companyId): bool
     {
-        $query = "
-            DELETE FROM category
-            WHERE id = :category_id AND company_id = :company_id
-        ";
+        $this->pdo->beginTransaction();
 
-        $stm = $this->pdo->prepare($query);
-        $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-        $stm->bindValue(':company_id', $companyId, PDO::PARAM_INT);
-        $stm->execute();
+        try {
+            $query = "
+                SELECT
+                    id
+                FROM category
+                WHERE
+                    id = :category_id AND
+                    company_id = :company_id
+            ";
 
-        return $stm->rowCount() > 0;
+            $stm = $this->pdo->prepare($query);
+            $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+            $stm->bindValue(':company_id', $companyId, PDO::PARAM_INT);
+            $stm->execute();
+
+            if ($stm->fetchColumn() === false) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $query = "
+                DELETE FROM product_category
+                WHERE
+                    cat_id = :category_id
+            ";
+
+            $stm = $this->pdo->prepare($query);
+            $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+            $stm->execute();
+
+            $query = "
+                DELETE FROM category
+                WHERE
+                    id = :category_id AND
+                    company_id = :company_id
+            ";
+
+            $stm = $this->pdo->prepare($query);
+            $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+            $stm->bindValue(':company_id', $companyId, PDO::PARAM_INT);
+            $stm->execute();
+
+            if ($stm->rowCount() === 0) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $exception;
+        }
     }
 }

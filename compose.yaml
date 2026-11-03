@@ -15,6 +15,7 @@ services:
         if [ ! -f db/db.sqlite3 ]; then
           cp db/db-backup.sqlite3 db/db.sqlite3
         fi
+        composer migrate --no-interaction
         exec php -S 0.0.0.0:8000 -t public
 
 volumes:

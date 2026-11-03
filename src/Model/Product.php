@@ -1,23 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Model;
 
 class Product
 {
+    /**
+     * @var string[]|string
+     */
+    public array|string $category = [];
 
-    public $category;
-
+    /**
+     * @param int $id
+     * @param int $companyId
+     * @param string $title
+     * @param float $price
+     * @param bool $active
+     * @param string $createdAt
+     */
     public function __construct(
-        public int $id,
-        public int $companyId,
-        public string $title,
-        public float $price,
-        public bool $active,
-        public string $createdAt
+        public int $id = 0,
+        public int $companyId = 0,
+        public string $title = '',
+        public float $price = 0.0,
+        public bool $active = false,
+        public string $createdAt = ''
     ) {
     }
 
-    public static function hydrateByFetch($fetch): self
+    /**
+     * @param object $fetch
+     * @return self
+     */
+    public static function hydrateByFetch(object $fetch): self
     {
         return new self(
             (int)$fetch->id,
@@ -29,7 +45,11 @@ class Product
         );
     }
 
-    public function setCategory($category)
+    /**
+     * @param string[]|string $category
+     * @return void
+     */
+    public function setCategory(array|string $category): void
     {
         $this->category = $category;
     }

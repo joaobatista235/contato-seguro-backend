@@ -1,17 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Middleware;
 
-use Slim\Psr7\Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-
-class JsonResponseMiddleware
+class JsonResponseMiddleware implements MiddlewareInterface
 {
-    public function __invoke(Request $request, RequestHandler $handler): Response
+    /**
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return ResponseInterface
+     */
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
-        return $response->withAddedHeader("Content-Type", "application/json");
+
+        if ($response->hasHeader('Content-Type')) {
+            return $response;
+        }
+
+        return $response->withHeader('Content-Type', 'application/json');
     }
 }

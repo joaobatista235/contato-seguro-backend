@@ -6,6 +6,7 @@ namespace ContatoSeguro\Tests\Support;
 
 use Contatoseguro\TesteBackend\Config\DB;
 use PDO;
+use Phinx\Db\Adapter\SQLiteAdapter;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Slim\App;
@@ -30,9 +31,10 @@ abstract class IntegrationTestCase extends TestCase
         ]);
         DB::$pdo = $this->pdo;
         $this->loadFixture('schema.sql');
+        $this->applyMigrations();
 
         $app = AppFactory::create();
-        $app->addBodyParsingMiddleware();
+        require dirname(__DIR__, 2) . '/src/Config/middlewares.php';
         require dirname(__DIR__, 2) . '/src/Config/routes.php';
         $this->app = $app;
     }
@@ -57,6 +59,25 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         $this->pdo->exec($sql);
+    }
+
+    /**
+     * @return void
+     */
+    private function applyMigrations(): void
+    {
+        require_once dirname(__DIR__, 2) . '/db/migrations/20261102000000_prevent_product_id_reuse.php';
+        $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        try {
+            $adapter = new SQLiteAdapter(['memory' => true]);
+            $adapter->setConnection($this->pdo);
+            $migration = new \PreventProductIdReuse('testing', 20261102000000);
+            $migration->setAdapter($adapter);
+            $migration->up();
+        } finally {
+            $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+        }
     }
 
     /**

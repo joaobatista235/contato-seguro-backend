@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contatoseguro\TesteBackend\Middleware;
 
-use Contatoseguro\TesteBackend\Service\CategoryService;
+use Contatoseguro\TesteBackend\Service\AdminUserService;
 use Contatoseguro\TesteBackend\Util\IntegerValidator;
 use Contatoseguro\TesteBackend\Util\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -13,16 +13,16 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
-class CategoryPermissionMiddleware implements MiddlewareInterface
+class AdminPermissionMiddleware implements MiddlewareInterface
 {
     /**
-     * @var CategoryService
+     * @var AdminUserService
      */
-    private CategoryService $service;
+    private AdminUserService $service;
 
     public function __construct()
     {
-        $this->service = new CategoryService();
+        $this->service = new AdminUserService();
     }
 
     /**

@@ -3,7 +3,8 @@ INSERT INTO company (id, name, active) VALUES
     (77, 'Second company', 1);
 
 INSERT INTO admin_user (id, company_id, email, name) VALUES
-    (7, 42, 'alice@example.test', 'Alice');
+    (7, 42, 'alice@example.test', 'Alice'),
+    (9, 77, 'eve@example.test', 'Eve');
 
 INSERT INTO product (id, company_id, title, price, active, created_at) VALUES
     (1, 42, 'king size bed', 999.99, 1, '2023-12-01'),

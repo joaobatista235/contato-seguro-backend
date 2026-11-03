@@ -1,67 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Controller;
 
-use Contatoseguro\TesteBackend\Service\CompanyService;
-use Contatoseguro\TesteBackend\Service\ProductService;
+use Contatoseguro\TesteBackend\Service\ReportService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class ReportController
 {
-    private ProductService $productService;
-    private CompanyService $companyService;
-    
+    /**
+     * @var ReportService
+     */
+    private ReportService $service;
+
     public function __construct()
     {
-        $this->productService = new ProductService();
-        $this->companyService = new CompanyService();
+        $this->service = new ReportService();
     }
-    
+
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array<string, string> $args
+     * @return ResponseInterface
+     */
     public function generate(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $adminUserId = $request->getHeader('admin_user_id')[0];
-        
-        $data = [];
-        $data[] = [
-            'Id do produto',
-            'Nome da Empresa',
-            'Nome do Produto',
-            'Valor do Produto',
-            'Categorias do Produto',
-            'Data de Criação',
-            'Logs de Alterações'
-        ];
-        
-        $products = $this->productService->getAll($adminUserId);
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
+        $html = $this->service->generate($adminUserId);
+        $response->getBody()->write($html);
 
-        foreach ($products as $i => $product) {
-            $stm = $this->companyService->getNameById($product['company_id']);
-            $companyName = $stm->fetch()->name;
-
-            $productLogs = $this->productService->getFormattedLogs($product['id']);
-            
-            $data[$i+1][] = $product['id'];
-            $data[$i+1][] = $companyName;
-            $data[$i+1][] = $product['title'];
-            $data[$i+1][] = $product['price'];
-            $data[$i+1][] = implode(', ', $product['category']);
-            $data[$i+1][] = $product['created_at'];
-            $data[$i+1][] = $productLogs;
-        }
-        
-        $report = "<table style='font-size: 10px;'>";
-        foreach ($data as $row) {
-            $report .= "<tr>";
-            foreach ($row as $column) {
-                $escaped = htmlspecialchars((string)$column, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                $report .= "<td style='white-space: pre-line;'>{$escaped}</td>";
-            }
-            $report .= "</tr>";
-        }
-        $report .= "</table>";
-        
-        $response->getBody()->write($report);
         return $response->withStatus(200)->withHeader('Content-Type', 'text/html');
     }
 }

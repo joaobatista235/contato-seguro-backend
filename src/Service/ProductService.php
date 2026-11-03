@@ -1,37 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Service;
 
-use Contatoseguro\TesteBackend\Config\DB;
+use Contatoseguro\TesteBackend\Model\Product;
+use Contatoseguro\TesteBackend\Repository\ProductRepository;
+use Contatoseguro\TesteBackend\Util\IntegerValidator;
+use InvalidArgumentException;
 
 class ProductService
 {
-    private \PDO $pdo;
+    /**
+     * @var ProductRepository
+     */
+    private ProductRepository $repository;
+
+    /**
+     * @var AdminUserService
+     */
+    private AdminUserService $adminUserService;
+
+    /**
+     * @var CategoryService
+     */
+    private CategoryService $categoryService;
+
     public function __construct()
     {
-        $this->pdo = DB::connect();
+        $this->repository = new ProductRepository();
+        $this->adminUserService = new AdminUserService();
+        $this->categoryService = new CategoryService();
     }
 
-    public function getAll($adminUserId): array
+    /**
+     * @param int $adminUserId
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAll(int $adminUserId): array
     {
-        $query = "
-            SELECT DISTINCT p.*, c.id AS category_id, c.title AS category
-            FROM product p
-            INNER JOIN admin_user au ON au.company_id = p.company_id AND au.id = :admin_user_id
-            LEFT JOIN product_category pc ON pc.product_id = p.id
-            LEFT JOIN category c ON c.id = pc.cat_id
-                AND c.active = 1
-                AND (c.company_id IS NULL OR c.company_id = au.company_id)
-            ORDER BY p.id, c.id
-        ";
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
+        if ($companyId === null) {
+            return [];
+        }
 
-        $stm->execute(['admin_user_id' => $adminUserId]);
-
+        $rows = $this->repository->findAllForCompany($companyId);
         $products = [];
 
-        while ($row = $stm->fetch(\PDO::FETCH_ASSOC)) {
+        foreach ($rows as $row) {
             $productId = $row['id'];
 
             if (!isset($products[$productId])) {
@@ -48,162 +65,186 @@ class ProductService
         return array_values($products);
     }
 
-    public function getOne($id)
+    /**
+     * @param int $productId
+     * @param int $adminUserId
+     * @return Product|null
+     */
+    public function getOne(int $productId, int $adminUserId): ?Product
     {
-        $query = "
-            SELECT
-                *
-            FROM product
-            WHERE id = :id
-        ";
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
-        $stm->execute(['id' => $id]);
+        if ($companyId === null) {
+            return null;
+        }
 
-        return $stm;
+        $product = $this->repository->findOneForCompany($productId, $companyId);
+
+        if ($product === null) {
+            return null;
+        }
+
+        $categories = $this->categoryService->getProductCategory($productId, $adminUserId);
+        $product->setCategory(array_column($categories, 'title'));
+
+        return $product;
     }
 
-    public function insertOne($body, $adminUserId)
+    /**
+     * @param array<string, mixed> $body
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function insertOne(array $body, int $adminUserId): bool
     {
-        $stm = $this->pdo->prepare("
-            INSERT INTO product (
-                company_id,
-                title,
-                price,
-                active
-            ) VALUES (
-                {$body['company_id']},
-                '{$body['title']}',
-                {$body['price']},
-                {$body['active']}
-            )
-        ");
-        if (!$stm->execute())
+        $this->validateBody($body);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
+
+        if ($companyId === null || $companyId !== (int)$body['company_id']) {
             return false;
+        }
 
-        $productId = $this->pdo->lastInsertId();
+        $categoryId = (int)$body['category_id'];
 
-        $stm = $this->pdo->prepare("
-            INSERT INTO product_category (
-                product_id,
-                cat_id
-            ) VALUES (
-                {$productId},
-                {$body['category_id']}
-            );
-        ");
-        if (!$stm->execute())
+        if ($this->categoryService->getOne($adminUserId, $categoryId) === []) {
             return false;
+        }
 
-        $stm = $this->pdo->prepare("
-            INSERT INTO product_log (
-                product_id,
-                admin_user_id,
-                `action`
-            ) VALUES (
-                {$productId},
-                {$adminUserId},
-                'create'
-            )
-        ");
+        return $this->repository->transaction(function () use ($body, $companyId, $categoryId, $adminUserId): bool {
+            $productId = $this->repository->insert(trim($body['title']), (float)$body['price'], (bool)$body['active'], $companyId);
+            $this->repository->insertCategory($productId, $categoryId);
+            $this->repository->insertLog($productId, $adminUserId, 'create');
 
-        return $stm->execute();
+            return true;
+        });
     }
 
-    public function updateOne($id, $body, $adminUserId)
+    /**
+     * @param int $productId
+     * @param array<string, mixed> $body
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function updateOne(int $productId, array $body, int $adminUserId): bool
     {
-        $stm = $this->pdo->prepare("
-            UPDATE product
-            SET company_id = {$body['company_id']},
-                title = '{$body['title']}',
-                price = {$body['price']},
-                active = {$body['active']}
-            WHERE id = {$id}
-        ");
-        if (!$stm->execute())
+        $this->validateBody($body);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
+
+        if ($companyId === null || $companyId !== (int)$body['company_id']) {
             return false;
+        }
 
-        $stm = $this->pdo->prepare("
-            UPDATE product_category
-            SET cat_id = {$body['category_id']}
-            WHERE product_id = {$id}
-        ");
-        if (!$stm->execute())
+        $categoryId = (int)$body['category_id'];
+
+        if ($this->categoryService->getOne($adminUserId, $categoryId) === []) {
             return false;
+        }
 
-        $stm = $this->pdo->prepare("
-            INSERT INTO product_log (
-                product_id,
-                admin_user_id,
-                `action`
-            ) VALUES (
-                {$id},
-                {$adminUserId},
-                'update'
-            )
-        ");
+        return $this->repository->transaction(function () use ($productId, $body, $companyId, $categoryId, $adminUserId): bool {
+            $updated = $this->repository->update($productId, trim($body['title']), (float)$body['price'], (bool)$body['active'], $companyId);
 
-        return $stm->execute();
+            if (!$updated) {
+                return false;
+            }
+
+            $this->repository->deleteCategories($productId);
+            $this->repository->insertCategory($productId, $categoryId);
+            $this->repository->insertLog($productId, $adminUserId, 'update');
+
+            return true;
+        });
     }
 
-    public function deleteOne($id, $adminUserId)
+    /**
+     * @param int $productId
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function deleteOne(int $productId, int $adminUserId): bool
     {
-        $stm = $this->pdo->prepare("
-            DELETE FROM product_category WHERE product_id = {$id}
-        ");
-        if (!$stm->execute())
-            return false;
-        
-        $stm = $this->pdo->prepare("DELETE FROM product WHERE id = {$id}");
-        if (!$stm->execute())
-            return false;
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
-        $stm = $this->pdo->prepare("
-            INSERT INTO product_log (
-                product_id,
-                admin_user_id,
-                `action`
-            ) VALUES (
-                {$id},
-                {$adminUserId},
-                'delete'
-            )
-        ");
+        if ($companyId === null || $this->repository->findOneForCompany($productId, $companyId) === null) {
+            return false;
+        }
 
-        return $stm->execute();
+        return $this->repository->transaction(function () use ($productId, $companyId, $adminUserId): bool {
+            $this->repository->deleteCategories($productId);
+
+            if (!$this->repository->delete($productId, $companyId)) {
+                return false;
+            }
+
+            $this->repository->insertLog($productId, $adminUserId, 'delete');
+
+            return true;
+        });
     }
 
-    public function getLog($id)
+    /**
+     * @param int $productId
+     * @param int $adminUserId
+     * @return array<int, array<string, mixed>>
+     */
+    public function getLog(int $productId, int $adminUserId): array
     {
-        $stm = $this->pdo->prepare("
-            SELECT pl.*, au.name AS user_name
-            FROM product_log pl
-            LEFT JOIN admin_user au ON au.id = pl.admin_user_id
-            WHERE pl.product_id = :product_id
-            ORDER BY pl.timestamp, pl.id
-        ");
-        $stm->execute(['product_id' => $id]);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
-        return $stm;
+        if ($companyId === null) {
+            return [];
+        }
+
+        return $this->repository->findLogsForCompany($productId, $companyId);
     }
 
-    public function getFormattedLogs($productId): string
+    /**
+     * @param int $productId
+     * @param int $adminUserId
+     * @return string
+     */
+    public function getFormattedLogs(int $productId, int $adminUserId): string
     {
-        $actions = [
-            'create' => 'Criação',
-            'update' => 'Atualização',
-            'delete' => 'Remoção',
-        ];
+        $actions = ['create' => 'Criação', 'update' => 'Atualização', 'delete' => 'Remoção'];
         $entries = [];
-        $stm = $this->getLog($productId);
 
-        while ($log = $stm->fetch()) {
-            $userName = $log->user_name ?? 'Usuário #' . $log->admin_user_id;
-            $action = $actions[$log->action] ?? $log->action;
-            $timestamp = (new \DateTimeImmutable($log->timestamp))->format('d/m/Y H:i:s');
+        foreach ($this->getLog($productId, $adminUserId) as $log) {
+            $userName = $log['user_name'] ?? 'Usuário #' . $log['admin_user_id'];
+            $action = $actions[$log['action']] ?? $log['action'];
+            $timestamp = (new \DateTimeImmutable($log['timestamp']))->format('d/m/Y H:i:s');
             $entries[] = "({$userName}, {$action}, {$timestamp})";
         }
 
         return implode(",\n", $entries);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return void
+     */
+    private function validateBody(array $body): void
+    {
+        if (!isset($body['title']) || !is_string($body['title']) || trim($body['title']) === '') {
+            throw new InvalidArgumentException('title must be a non-empty string');
+        }
+
+        if (
+            !isset($body['price']) ||
+            (!is_int($body['price']) && !is_float($body['price'])) ||
+            $body['price'] < 0
+        ) {
+            throw new InvalidArgumentException('price must be a non-negative number');
+        }
+
+        if (!array_key_exists('active', $body) || !in_array($body['active'], [true, false, 0, 1], true)) {
+            throw new InvalidArgumentException('active must be a boolean or the integer 0 or 1');
+        }
+
+        if (IntegerValidator::positive($body['company_id'] ?? null) === null) {
+            throw new InvalidArgumentException('company_id must be a positive integer');
+        }
+
+        if (IntegerValidator::positive($body['category_id'] ?? null) === null) {
+            throw new InvalidArgumentException('category_id must be a positive integer');
+        }
     }
 }

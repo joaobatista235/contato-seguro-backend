@@ -11,7 +11,10 @@ INSERT INTO category (id, company_id, title, active) VALUES
     (1, NULL, 'house', 1),
     (2, 42, 'furniture', 1),
     (3, 77, 'foreign category', 1),
-    (4, 42, 'inactive category', 0);
+    (4, 42, 'inactive category', 0),
+    (5, NULL, 'clothing', 1),
+    (6, NULL, 'phone', 1),
+    (7, NULL, 'computer', 1);
 
 INSERT INTO product (id, company_id, title, price, active) VALUES
     (1, 42, 'Own product', 100, 1),

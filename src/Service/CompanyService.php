@@ -1,22 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Service;
 
-use Contatoseguro\TesteBackend\Config\DB;
+use Contatoseguro\TesteBackend\Model\Company;
+use Contatoseguro\TesteBackend\Repository\CompanyRepository;
 
 class CompanyService
 {
-    private \PDO $pdo;
+    /**
+     * @var CompanyRepository
+     */
+    private CompanyRepository $repository;
+
+    /**
+     * @var AdminUserService
+     */
+    private AdminUserService $adminUserService;
+
     public function __construct()
     {
-        $this->pdo = DB::connect();
+        $this->repository = new CompanyRepository();
+        $this->adminUserService = new AdminUserService();
     }
 
-    public function getNameById($id)
+    /**
+     * @param int $adminUserId
+     * @return Company[]
+     */
+    public function getAll(int $adminUserId): array
     {
-        $stm = $this->pdo->prepare("SELECT name FROM company WHERE id = {$id}");
-        $stm->execute();
-        
-        return $stm;
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
+
+        if ($companyId === null) {
+            return [];
+        }
+
+        return $this->repository->findAllForCompany($companyId);
+    }
+
+    /**
+     * @param int $companyId
+     * @param int $adminUserId
+     * @return Company|null
+     */
+    public function getOne(int $companyId, int $adminUserId): ?Company
+    {
+        if ($companyId !== $this->adminUserService->getCompanyId($adminUserId)) {
+            return null;
+        }
+
+        $companies = $this->repository->findAllForCompany($companyId);
+
+        return $companies[0] ?? null;
+    }
+
+    /**
+     * @param int $companyId
+     * @param int $adminUserId
+     * @return string|null
+     */
+    public function getNameById(int $companyId, int $adminUserId): ?string
+    {
+        $company = $this->getOne($companyId, $adminUserId);
+
+        return $company?->name;
     }
 }

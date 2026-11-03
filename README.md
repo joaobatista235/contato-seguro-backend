@@ -171,153 +171,103 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 - [ ] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
 
 ## Suas Respostas, Dúvidas e Observações
-### Categorias nas consultas de produtos
 
-A busca `GET /products/{id}` lia apenas a primeira associação com `fetch()` e
-atribuía uma única categoria ao produto. Agora, uma consulta com `JOIN` busca
-todas as categorias ativas associadas, incluindo as padrão (`company_id IS NULL`)
-e as personalizadas da empresa do administrador. Os parâmetros são vinculados à
-consulta, e não é necessário consultar cada categoria separadamente.
+### 1. Ambiente e comandos
 
-Nas respostas de `GET /products/{id}` e `GET /products`, o campo `category` passa de texto para uma lista de
-nomes, inclusive quando existe apenas uma categoria. Sem categorias disponíveis,
-retorna `[]`. Exemplo para `king size bed`: `"category": ["furniture", "house"]`.
-A listagem agrupa as categorias por produto em `ProductService::getAll()` após uma única consulta com
-`JOIN`, retornando cada produto uma vez, sem subqueries nem consultas por produto.
-O serviço retorna um array pronto para consumo; o controller apenas serializa
-esse resultado na resposta HTTP. O relatório também utiliza esse retorno.
-Os `LEFT JOIN`s preservam produtos sem categorias disponíveis. A empresa é obtida
-pelo administrador, em vez de comparar o ID do produto/empresa com o ID do usuário.
+Requisito: Docker com Compose.
 
-Testes de regressão usam SQLite em memória para verificar múltiplas categorias,
-categorias padrão, categorias de outra empresa, categorias inativas e produtos
-sem categorias, sem alterar o banco de desenvolvimento.
+```sh
+docker compose up -d --build
+```
 
-### Categorias padrão na listagem
+Aplicação: [http://localhost:8000](http://localhost:8000). O container instala as dependências, prepara o SQLite a partir do backup original se o banco ainda não existir e aplica as migrations pendentes.
 
-`GET /categories` filtrava apenas pelo `company_id` da empresa e excluía as
-categorias padrão. Agora, um `JOIN` com o administrador identifica sua empresa e
-a condição inclui também `company_id IS NULL`. A listagem mantém o campo
-`active`, incluindo categorias inativas como antes; nenhuma funcionalidade nova
-de filtro foi adicionada. Após a padronização de permissões, as rotas de categorias
-rejeitam administradores inexistentes ou sem empresa com HTTP 403.
+| Ação | Comando |
+|---|---|
+| Executar os testes sem interromper no debugger | `docker compose exec -e XDEBUG_MODE=off app composer test` |
+| Aplicar migrations | `docker compose exec app composer migrate` |
+| Criar uma migration | `docker compose exec app composer create-migration NomeDaMigration` |
+| Reverter a última migration | `docker compose exec app composer rollback-migration` |
+| Encerrar o ambiente | `docker compose down` |
 
-### Relatório e histórico de alterações
+O Xdebug está configurado para o VS Code, sem parâmetro na URL. Instale a extensão **PHP Debug**, selecione **Escutar Xdebug (Docker)** e pressione `F5`.
 
-O relatório tentava interpolar um array de logs diretamente no HTML, em vez de
-formatar cada registro. A consulta agora vincula o ID do produto como parâmetro,
-busca o nome do usuário por `LEFT JOIN` e ordena por `timestamp` e `id`.
-`ProductService::getFormattedLogs()` retorna as entradas no formato
-`(Nome, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss)`, separadas por vírgula
-e quebra de linha. As datas preservam o horário armazenado no banco, sem conversão
-de fuso. Ações desconhecidas preservam seu texto original.
+### 2. Correções realizadas
 
-Registros cujo usuário não existe mais são preservados como `Usuário #ID`.
-Produtos sem logs mostram a coluna vazia. Todos os valores inseridos no HTML são
-escapados para que nomes e outros textos não sejam interpretados como marcação.
+| Problema | Solução |
+|---|---|
+| Categoria incorreta na listagem | Corrigido o relacionamento para `c.id = pc.cat_id`. |
+| Categorias padrão ausentes | Incluídas as categorias com `company_id IS NULL`. |
+| Produto retornava uma única categoria | Todas as categorias disponíveis são retornadas em uma lista, com um registro por produto. |
+| Preço perdia os centavos | A conversão de `price` em `hydrateByFetch()` passou de `int` para `float`. |
+| Logs apareciam como array no relatório | Formatação com nome, ação e data, em ordem cronológica. |
+| Categoria excluída deixava vínculos antigos | Exclusão da categoria e de suas associações na mesma transação. |
+| Produto novo herdava histórico antigo | Migration impede a reutilização de IDs de produtos. |
+| Erros retornavam HTML com status 200 | Tratamento central de exceções com status HTTP e corpo JSON. |
 
-### Quem atualizou o iphone 8 por último?
+O relatório usa o formato `(Nome, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss)`. Usuários ausentes aparecem como `Usuário #ID`; produtos sem logs têm a coluna vazia. Os textos são escapados no HTML, e as datas mantêm o horário armazenado no banco.
 
-No banco original e no backup, a última atualização do produto `4` (`iphone 8`)
-é o log `30`, realizado por **corin** (`admin_user_id = 3`) em
-**22/12/2023 às 18:12:10**, no horário registrado no banco.
+### 3. API e validações
 
-Consulta utilizada para reproduzir a investigação:
+- Todas as rotas exigem o header `admin_user_id` com um inteiro positivo. O administrador deve existir e pertencer a uma empresa.
+- Produtos, empresas e categorias personalizadas são restritos à empresa do administrador. Categorias padrão são compartilhadas e não podem ser editadas ou removidas por essas rotas.
+- `GET /products` e `GET /products/{id}` retornam `category` como lista: `["furniture", "house"]` ou `[]`.
+- A listagem de produtos mantém `company_id` e `created_at`; a consulta individual mantém `companyId` e `createdAt`.
+- `GET /categories/{id}` mantém a resposta em lista. Sem resultado, retorna `[]` com status 200.
+- Cadastro e atualização de categorias exigem `title` e `active`.
+- Cadastro e atualização de produtos exigem `company_id`, `title`, `price`, `active` e `category_id`. A empresa deve ser a do administrador e a categoria deve estar ativa e disponível para ele.
+- Títulos são textos não vazios, salvos sem espaços nas extremidades. O preço deve ser finito e não negativo; `active` aceita booleano ou inteiro `0`/`1`; IDs devem ser inteiros positivos.
+- A atualização de produto recebe um único `category_id` e substitui os vínculos anteriores por essa categoria.
+
+| HTTP | Uso |
+|---|---|
+| 200 | Operação concluída. |
+| 400 | Cabeçalho, ID ou corpo inválido. |
+| 403 | Administrador inexistente ou sem empresa. |
+| 404 | Rota inexistente ou recurso indisponível ao administrador. |
+| 405 | Método HTTP não permitido; o header `Allow` informa os métodos aceitos. |
+| 500 | Falha interna, com a mensagem genérica `Internal server error`. |
+
+Erros usam `{"error": "mensagem"}`. Detalhes internos ficam nos logs do servidor. O relatório retorna HTML; as demais respostas com conteúdo retornam JSON.
+
+### 4. Arquitetura e padrões
+
+```text
+Controller → Service → Repository
+```
+
+- **Controller:** entrada da requisição e resposta HTTP.
+- **Service:** validações, regras e coordenação das operações.
+- **Repository:** SQL em `$query`, parâmetros com `bindValue()` e tipos PDO explícitos.
+- **Models:** registros da tabela retornados com `FETCH_CLASS`. Consultas com JOIN retornam arrays associativos.
+- **AdminPermissionMiddleware:** valida o administrador e disponibiliza seu ID como atributo da requisição.
+- **ReportService:** compõe os dados e gera o HTML com heredoc e escape dos valores.
+- **Utilitários:** `IntegerValidator` para IDs e `JsonResponse` para respostas JSON.
+
+As dependências são criadas nos construtores. O código usa `strict_types`, parâmetros e retornos tipados e PHPDocs somente com tipos. Gravações de produtos, vínculos e logs são executadas em transação.
+
+### 5. Banco e migrations
+
+O backup original `db/db-backup.sqlite3` está incluído no Git. O banco de trabalho e as cópias locais de segurança permanecem ignorados.
+
+A migration [PreventProductIdReuse](db/migrations/20261102000000_prevent_product_id_reuse.php) configura `product.id` com `AUTOINCREMENT`, reservando também os IDs encontrados nos logs históricos. Preserva registros, índices, triggers e a referência à empresa.
+
+O método `down()` restaura a chave original e remove essa proteção. Aplicação, rollback e reaplicação foram verificados em uma cópia do banco original, sem perda de dados. A migration previne novas colisões; não separa históricos que já tenham sido misturados.
+
+### 6. Investigação do iphone 8
+
+No backup original, a última atualização do produto `4` foi feita por **corin** (`admin_user_id = 3`), em **22/12/2023 às 18:12:10**, no log `30`.
+
+**Limitação:** o histórico registra apenas `update`, sem campo alterado ou valores anteriores. Portanto, é possível identificar a última atualização, mas não comprovar que ela mudou o preço.
 
 ```sql
-SELECT pl.id, pl.product_id, pl.admin_user_id, au.name, pl.action, pl.timestamp
+SELECT
+    pl.id, au.name, pl.action, pl.timestamp
 FROM product_log pl
 LEFT JOIN admin_user au ON au.id = pl.admin_user_id
-INNER JOIN product p ON p.id = pl.product_id
-WHERE p.title = 'iphone 8' AND pl.action = 'update'
+WHERE
+    pl.product_id = 4 AND
+    pl.action = 'update'
 ORDER BY pl.timestamp DESC, pl.id DESC
 LIMIT 1;
 ```
-
-**Limitação do histórico:** os logs existentes só informam a ação genérica
-`update`, sem registrar o campo alterado nem os valores anterior e novo. Portanto,
-corin é o autor da última atualização registrada; não é possível comprovar que
-essa atualização mudou o preço. A demanda específica de autoria da alteração de
-preço permanece sem comprovação histórica. Acrescentar auditoria de campos
-futuramente não permitiria reconstruir os valores anteriores ausentes.
-
-### Testes e causa da falha original
-
-`Product::hydrateByFetch()` convertia `price` para `int`, descartando os centavos
-antes de atribuir o valor ao atributo `float`. A correção usa `(float)`, preservando
-`99.99`, conforme a expectativa do teste original.
-
-Os testes que utilizam banco foram separados em `tests/Integration`; os testes
-isolados de `Product` permanecem em `tests/Unit`. A anotação `@dataProvider` é
-necessária no teste parametrizado para que o PHPUnit forneça seus argumentos.
-Os testes de integração criam tabelas e dados conhecidos em SQLite na memória,
-substituem temporariamente a conexão e restauram a anterior ao terminar. Nenhum
-dado ou estrutura do banco de desenvolvimento é alterado por esses testes.
-
-A estrutura comum está em `tests/Fixtures/schema.sql`, e os dados de cada
-funcionalidade ficam em arquivos separados na mesma pasta. A classe
-`tests/Support/IntegrationTestCase.php` centraliza o preparo do banco e das
-requisições. Os cenários de categorias, produtos e relatório estão separados por
-funcionalidade, substituindo o antigo `RemainingBugsTest`. O guia
-`tests/README.md` explica como ler e executar os testes.
-
-```sh
-# Todas as suítes
-docker compose exec app composer test
-
-# Apenas os testes unitários
-docker compose exec app php vendor/bin/phpunit --testsuite unit --testdox
-
-# Apenas os testes de integração
-docker compose exec app php vendor/bin/phpunit --testsuite integration --testdox
-```
-
-Para executar sem interromper nos breakpoints, adicione `-e XDEBUG_MODE=off`
-após `exec`. O aviso de depreciação do PHPUnit 9.5 no PHP atual é independente da
-falha de conversão de preço; a atualização dessa dependência fica para a etapa de
-refatoração. Estas correções não exigem migration, pois não modificam dados nem
-estrutura persistida do banco.
-
-### Padronização de categorias
-
-O fluxo de categorias foi separado em `CategoryController → CategoryService →
-CategoryRepository`. O `CategoryPermissionMiddleware`, aplicado ao grupo
-`/categories`, valida o cabeçalho e chama `CategoryService::validatePermission()`
-antes de executar o controller. O administrador deve existir e pertencer a uma
-empresa. Seu ID validado é passado como atributo da requisição; os métodos do
-controller não repetem essa validação. O controller valida os parâmetros de rota
-e o formato do corpo e monta a resposta HTTP. O service valida os dados de categoria,
-identifica a empresa do administrador e coordena o repository. Todo o SQL de
-categorias, incluindo a consulta auxiliar da empresa do administrador, está no
-repository, com `bindValue()` e tipos PDO explícitos para todos os parâmetros.
-
-Controller, service, repository e model usam `strict_types` e tipagem de parâmetros
-e retornos. As consultas da tabela `category` utilizam
-`fetchAll(PDO::FETCH_CLASS, Category::class)` e retornam arrays de instâncias de `Category`,
-sem expor `PDOStatement` ou `stdClass`. O model mantém os nomes das colunas,
-incluindo `company_id`, e o campo `active` numérico para preservar o JSON atual.
-
-A consulta com JOIN em `getProductCategory()` usa `FETCH_ASSOC` e retorna
-`array<int, array{id: int, title: string}>`. A chamada na busca individual
-de produtos foi adaptada para esse contrato. Essa consulta confere também a
-empresa do próprio produto. Os PHPDocs contêm apenas os tipos de parâmetros e retornos;
-as consultas ficam na variável `$query` antes de `prepare()`. Retornos simples
-podem usar ternário, como a conversão do ID da empresa para `int` ou `null`.
-
-Os utilitários `IntegerValidator::positive()` e `JsonResponse::create()`, em
-`src/Util`, centralizam a validação de inteiros positivos e a construção de
-respostas JSON. São reutilizados pelo controller e pelo middleware de categorias.
-
-Todas as rotas de categorias exigem `admin_user_id` como inteiro positivo. IDs
-de categoria também devem ser inteiros positivos. Valores ausentes ou inválidos
-retornam HTTP 400 com um objeto JSON contendo `error`. Cadastro e atualização
-exigem `title` como texto não vazio e `active` como booleano ou inteiro `0`/`1`;
-o título é salvo sem espaços nas extremidades. Dados inválidos retornam HTTP 400.
-
-As leituras mantêm o formato de lista, inclusive na consulta individual; sem
-resultado, retornam `[]` com HTTP 200. Administradores inexistentes ou sem empresa
-recebem HTTP 403 com um objeto JSON contendo `error`, antes de qualquer ação do
-controller. As gravações mantêm HTTP 200 no sucesso e retornam 404 quando nenhuma
-categoria própria é afetada. Categorias
-padrão e categorias de outra empresa não podem ser editadas ou removidas por
-essas rotas. Não houve alteração no esquema do banco nem no arquivo do Postman.

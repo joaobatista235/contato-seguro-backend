@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace ContatoSeguro\Tests\Integration\Controller;
 
 use ContatoSeguro\Tests\Support\IntegrationTestCase;
-use Contatoseguro\TesteBackend\Service\ProductService;
+use DOMDocument;
+use DOMXPath;
 
 class ReportControllerTest extends IntegrationTestCase
 {
@@ -15,38 +16,58 @@ class ReportControllerTest extends IntegrationTestCase
         $this->loadFixture('report.sql');
     }
 
-    public function testLogsAreFormattedInChronologicalOrderIncludingMissingUsers(): void
+    public function testReportDisplaysProductsCategoriesAndChronologicalAuditHistory(): void
     {
-        $logs = (new ProductService())->getFormattedLogs(1);
+        $response = $this->request('GET', '/report');
+        $html = (string)$response->getBody();
+        $created = '(Bob, Criação, 20/12/2023 21:32:22)';
+        $updated = '(Alice &lt;admin&gt;, Atualização, 22/12/2023 18:12:10)';
+        $deleted = '(Usuário #99, Remoção, 22/12/2023 18:12:10)';
 
-        $this->assertSame(
-            "(Bob, Criação, 20/12/2023 21:32:22),\n"
-            . "(Alice <admin>, Atualização, 22/12/2023 18:12:10),\n"
-            . '(Usuário #99, Remoção, 22/12/2023 18:12:10)',
-            $logs
-        );
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('text/html', $response->getHeaderLine('Content-Type'));
+        $this->assertStringContainsString('house, furniture', $html);
+        $this->assertStringContainsString($created, $html);
+        $this->assertStringContainsString($updated, $html);
+        $this->assertStringContainsString($deleted, $html);
+        $this->assertLessThan(strpos($html, $updated), strpos($html, $created));
+        $this->assertLessThan(strpos($html, $deleted), strpos($html, $updated));
     }
 
-    public function testProductsWithoutLogsHaveAnEmptyLogColumn(): void
+    public function testProductsWithoutLogsAppearWithAnEmptyAuditColumn(): void
     {
-        $this->assertSame('', (new ProductService())->getFormattedLogs(2));
+        $response = $this->request('GET', '/report');
+        $document = new DOMDocument();
+        $document->loadHTML('<?xml encoding="UTF-8">' . (string)$response->getBody(), LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        $cells = (new DOMXPath($document))->query("//tr[td[3] = 'Product without logs']/td[last()]");
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertCount(1, $cells);
+        $this->assertSame('', trim($cells->item(0)->textContent));
     }
 
-    public function testReportRendersLogsAndCategoriesAsEscapedHtml(): void
+    public function testReportOnlyDisplaysTheOwnCompanyProductsAndLogs(): void
+    {
+        $response = $this->request('GET', '/report', adminUserId: '9');
+        $html = (string)$response->getBody();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('Foreign product', $html);
+        $this->assertStringContainsString('Another company', $html);
+        $this->assertStringNotContainsString('Bob', $html);
+        $this->assertStringNotContainsString('Alice', $html);
+        $this->assertStringNotContainsString('Usuário #99', $html);
+    }
+
+    public function testReportEscapesHtmlInProductCompanyAndUserNames(): void
     {
         $response = $this->request('GET', '/report');
         $html = (string)$response->getBody();
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('text/html', $response->getHeaderLine('Content-Type'));
-        $this->assertStringContainsString('house, furniture', $html);
-        $this->assertStringContainsString('(Bob, Criação, 20/12/2023 21:32:22)', $html);
-        $this->assertStringContainsString('(Alice &lt;admin&gt;, Atualização, 22/12/2023 18:12:10)', $html);
-        $this->assertStringContainsString('(Usuário #99, Remoção, 22/12/2023 18:12:10)', $html);
         $this->assertStringContainsString('&lt;script&gt;unsafe&lt;/script&gt;', $html);
         $this->assertStringContainsString('&lt;Acme&gt;', $html);
-        $this->assertStringContainsString('Product without logs', $html);
+        $this->assertStringContainsString('Alice &lt;admin&gt;', $html);
         $this->assertStringNotContainsString('<script>', $html);
-        $this->assertStringNotContainsString('Foreign product', $html);
     }
 }

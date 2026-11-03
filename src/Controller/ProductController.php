@@ -1,78 +1,154 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Controller;
 
-use Contatoseguro\TesteBackend\Model\Product;
-use Contatoseguro\TesteBackend\Service\CategoryService;
 use Contatoseguro\TesteBackend\Service\ProductService;
+use Contatoseguro\TesteBackend\Util\IntegerValidator;
+use Contatoseguro\TesteBackend\Util\JsonResponse;
+use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class ProductController
 {
+    /**
+     * @var ProductService
+     */
     private ProductService $service;
-    private CategoryService $categoryService;
 
     public function __construct()
     {
         $this->service = new ProductService();
-        $this->categoryService = new CategoryService();
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array<string, string> $args
+     * @return ResponseInterface
+     */
     public function getAll(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $adminUserId = $request->getHeader('admin_user_id')[0];
-        
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
+
         $products = $this->service->getAll($adminUserId);
-        $response->getBody()->write(json_encode($products));
-        return $response->withStatus(200);
+
+        return JsonResponse::create($response, $products, 200);
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array{id: string} $args
+     * @return ResponseInterface
+     */
     public function getOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $stm = $this->service->getOne($args['id']);
-        $product = Product::hydrateByFetch($stm->fetch());
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $adminUserId = $request->getHeader('admin_user_id')[0];
-        $categories = $this->categoryService->getProductCategory($product->id, $adminUserId);
-        $product->setCategory(array_column($categories, 'title'));
+        $productId = IntegerValidator::positive($args['id'] ?? null);
 
-        $response->getBody()->write(json_encode($product));
+        if ($productId === null) {
+            return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
+        }
+
+        $product = $this->service->getOne($productId, $adminUserId);
+
+        if ($product === null) {
+            return JsonResponse::create($response, ['error' => 'product not found'], 404);
+        }
+
+        return JsonResponse::create($response, $product, 200);
+    }
+
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array<string, string> $args
+     * @return ResponseInterface
+     */
+    public function insertOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
+
+        $body = $request->getParsedBody();
+
+        if (!is_array($body)) {
+            return JsonResponse::create($response, ['error' => 'request body must contain company_id, title, price, active and category_id'], 400);
+        }
+
+        try {
+            $created = $this->service->insertOne($body, $adminUserId);
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
+
+        if (!$created) {
+            return $response->withStatus(404);
+        }
+
         return $response->withStatus(200);
     }
 
-    public function insertOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
-        $body = $request->getParsedBody();
-        $adminUserId = $request->getHeader('admin_user_id')[0];
-
-        if ($this->service->insertOne($body, $adminUserId)) {
-            return $response->withStatus(200);
-        } else {
-            return $response->withStatus(404);
-        }
-    }
-
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array{id: string} $args
+     * @return ResponseInterface
+     */
     public function updateOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $body = $request->getParsedBody();
-        $adminUserId = $request->getHeader('admin_user_id')[0];
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        if ($this->service->updateOne($args['id'], $body, $adminUserId)) {
-            return $response->withStatus(200);
-        } else {
+        $productId = IntegerValidator::positive($args['id'] ?? null);
+
+        if ($productId === null) {
+            return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
+        }
+
+        $body = $request->getParsedBody();
+
+        if (!is_array($body)) {
+            return JsonResponse::create($response, ['error' => 'request body must contain company_id, title, price, active and category_id'], 400);
+        }
+
+        try {
+            $updated = $this->service->updateOne($productId, $body, $adminUserId);
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
+
+        if (!$updated) {
             return $response->withStatus(404);
         }
+
+        return $response->withStatus(200);
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @param array{id: string} $args
+     * @return ResponseInterface
+     */
     public function deleteOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $adminUserId = $request->getHeader('admin_user_id')[0];
+        $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        if ($this->service->deleteOne($args['id'], $adminUserId)) {
-            return $response->withStatus(200);
-        } else {
+        $productId = IntegerValidator::positive($args['id'] ?? null);
+
+        if ($productId === null) {
+            return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
+        }
+
+        $deleted = $this->service->deleteOne($productId, $adminUserId);
+
+        if (!$deleted) {
             return $response->withStatus(404);
         }
+
+        return $response->withStatus(200);
     }
 }

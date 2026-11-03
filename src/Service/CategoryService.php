@@ -15,9 +15,15 @@ class CategoryService
      */
     private CategoryRepository $repository;
 
+    /**
+     * @var AdminUserService
+     */
+    private AdminUserService $adminUserService;
+
     public function __construct()
     {
         $this->repository = new CategoryRepository();
+        $this->adminUserService = new AdminUserService();
     }
 
     /**
@@ -26,7 +32,7 @@ class CategoryService
      */
     public function validatePermission(int $adminUserId): bool
     {
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return false;
@@ -41,7 +47,7 @@ class CategoryService
      */
     public function getAll(int $adminUserId): array
     {
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
@@ -57,7 +63,7 @@ class CategoryService
      */
     public function getOne(int $adminUserId, int $categoryId): array
     {
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
@@ -73,7 +79,7 @@ class CategoryService
      */
     public function getProductCategory(int $productId, int $adminUserId): array
     {
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
@@ -90,7 +96,7 @@ class CategoryService
     public function insertOne(array $body, int $adminUserId): bool
     {
         $this->validateBody($body);
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return false;
@@ -108,7 +114,7 @@ class CategoryService
     public function updateOne(int $categoryId, array $body, int $adminUserId): bool
     {
         $this->validateBody($body);
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return false;
@@ -124,7 +130,7 @@ class CategoryService
      */
     public function deleteOne(int $categoryId, int $adminUserId): bool
     {
-        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
+        $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return false;
