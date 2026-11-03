@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ContatoSeguro\Tests\Support;
+
+use Contatoseguro\TesteBackend\Config\DB;
+use PDO;
+use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Slim\App;
+use Slim\Factory\AppFactory;
+use Slim\Psr7\Factory\ServerRequestFactory;
+use Slim\Psr7\Factory\StreamFactory;
+
+abstract class IntegrationTestCase extends TestCase
+{
+    private PDO $previousConnection;
+    protected PDO $pdo;
+    private App $app;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->previousConnection = DB::connect();
+        $this->pdo = new PDO('sqlite::memory:', null, null, [
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+        DB::$pdo = $this->pdo;
+        $this->loadFixture('schema.sql');
+
+        $app = AppFactory::create();
+        $app->addBodyParsingMiddleware();
+        require dirname(__DIR__, 2) . '/src/Config/routes.php';
+        $this->app = $app;
+    }
+
+    protected function tearDown(): void
+    {
+        DB::$pdo = $this->previousConnection;
+
+        parent::tearDown();
+    }
+
+    /**
+     * @param string $filename
+     * @return void
+     */
+    protected function loadFixture(string $filename): void
+    {
+        $sql = file_get_contents(dirname(__DIR__) . '/Fixtures/' . $filename);
+
+        if ($sql === false) {
+            throw new \RuntimeException('Could not read test fixture: ' . $filename);
+        }
+
+        $this->pdo->exec($sql);
+    }
+
+    /**
+     * @param string $method
+     * @param string $path
+     * @param array<string, mixed>|null $body
+     * @param string|null $adminUserId
+     * @return ResponseInterface
+     */
+    protected function request(string $method, string $path, ?array $body = null, ?string $adminUserId = '7'): ResponseInterface
+    {
+        $request = (new ServerRequestFactory())->createServerRequest($method, $path);
+
+        if ($adminUserId !== null) {
+            $request = $request->withHeader('admin_user_id', $adminUserId);
+        }
+
+        if ($body !== null) {
+            $stream = (new StreamFactory())->createStream(json_encode($body, JSON_THROW_ON_ERROR));
+            $request = $request->withHeader('Content-Type', 'application/json')->withBody($stream);
+        }
+
+        return $this->app->handle($request);
+    }
+
+    /**
+     * @param ResponseInterface $response
+     * @return array<array-key, mixed>
+     */
+    protected function responseData(ResponseInterface $response): array
+    {
+        return json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+}

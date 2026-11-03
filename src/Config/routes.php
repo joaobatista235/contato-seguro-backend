@@ -5,6 +5,7 @@ use Contatoseguro\TesteBackend\Controller\CompanyController;
 use Contatoseguro\TesteBackend\Controller\HomeController;
 use Contatoseguro\TesteBackend\Controller\ProductController;
 use Contatoseguro\TesteBackend\Controller\ReportController;
+use Contatoseguro\TesteBackend\Middleware\CategoryPermissionMiddleware;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 
@@ -30,6 +31,6 @@ $app->group('/categories', function (RouteCollectorProxy $group) {
     $group->post('', [CategoryController::class, 'insertOne']);
     $group->put('/{id}', [CategoryController::class, 'updateOne']);
     $group->delete('/{id}', [CategoryController::class, 'deleteOne']);
-});
+})->add(CategoryPermissionMiddleware::class);
 
 $app->get('/report', [ReportController::class, 'generate']);

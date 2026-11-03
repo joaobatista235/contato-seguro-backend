@@ -1,137 +1,150 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contatoseguro\TesteBackend\Service;
 
-use Contatoseguro\TesteBackend\Config\DB;
+use Contatoseguro\TesteBackend\Model\Category;
+use Contatoseguro\TesteBackend\Repository\CategoryRepository;
+use InvalidArgumentException;
 
 class CategoryService
 {
-    private \PDO $pdo;
+    /**
+     * @var CategoryRepository
+     */
+    private CategoryRepository $repository;
+
     public function __construct()
     {
-        $this->pdo = DB::connect();
+        $this->repository = new CategoryRepository();
     }
 
-    public function getAll($adminUserId)
+    /**
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function validatePermission(int $adminUserId): bool
     {
-        $query = "
-            SELECT c.*
-            FROM category c
-            INNER JOIN admin_user au ON au.id = :admin_user_id
-            WHERE c.company_id = au.company_id OR c.company_id IS NULL
-            ORDER BY c.id
-        ";
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
+        if ($companyId === null) {
+            return false;
+        }
 
-        $stm->execute(['admin_user_id' => $adminUserId]);
-
-        return $stm;
+        return true;
     }
 
-    public function getOne($adminUserId, $categoryId)
+    /**
+     * @param int $adminUserId
+     * @return Category[]
+     */
+    public function getAll(int $adminUserId): array
     {
-        $query = "
-            SELECT
-                *
-            FROM category c
-            WHERE
-                c.active = 1 AND
-                (c.company_id = :company_id OR c.company_id IS NULL) AND
-                c.id = :category_id
-        ";
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
+        if ($companyId === null) {
+            return [];
+        }
 
-        $stm->execute([
-            'company_id' => $this->getCompanyFromAdminUser($adminUserId),
-            'category_id' => $categoryId
-        ]);
-
-        return $stm;
+        return $this->repository->findAllForCompany($companyId);
     }
 
-    public function getProductCategory($productId, $adminUserId)
+    /**
+     * @param int $adminUserId
+     * @param int $categoryId
+     * @return Category[]
+     */
+    public function getOne(int $adminUserId, int $categoryId): array
     {
-        $query = "
-            SELECT
-                DISTINCT c.id, c.title
-            FROM category c
-            INNER JOIN product_category pc ON pc.cat_id = c.id
-            INNER JOIN admin_user au ON au.id = :admin_user_id
-            WHERE
-                pc.product_id = :product_id AND
-                c.active = 1 AND
-                (c.company_id IS NULL OR c.company_id = au.company_id)
-            ORDER BY c.id
-        ";
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
+        if ($companyId === null) {
+            return [];
+        }
 
-        $stm->execute([
-            'product_id' => $productId,
-            'admin_user_id' => $adminUserId,
-        ]);
-
-        return $stm;
+        return $this->repository->findOneForCompany($categoryId, $companyId);
     }
 
-    public function insertOne($body, $adminUserId)
+    /**
+     * @param int $productId
+     * @param int $adminUserId
+     * @return array<int, array{id: int, title: string}>
+     */
+    public function getProductCategory(int $productId, int $adminUserId): array
     {
-        $stm = $this->pdo->prepare("
-            INSERT INTO category (
-                company_id,
-                title,
-                active
-            ) VALUES (
-                {$this->getCompanyFromAdminUser($adminUserId)},
-                '{$body['title']}',
-                {$body['active']}
-            )
-        ");
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        return $stm->execute();
+        if ($companyId === null) {
+            return [];
+        }
+
+        return $this->repository->findByProduct($productId, $companyId);
     }
 
-    public function updateOne($id, $body, $adminUserId)
+    /**
+     * @param array<string, mixed> $body
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function insertOne(array $body, int $adminUserId): bool
     {
-        $active = (int)$body['active'];
+        $this->validateBody($body);
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        $stm = $this->pdo->prepare("
-            UPDATE category
-            SET title = '{$body['title']}',
-                active = {$active}
-            WHERE id = {$id}
-            AND company_id = {$this->getCompanyFromAdminUser($adminUserId)}
-        ");
+        if ($companyId === null) {
+            return false;
+        }
 
-        return $stm->execute();
+        return $this->repository->insert(trim($body['title']), (bool)$body['active'], $companyId);
     }
 
-    public function deleteOne($id, $adminUserId)
+    /**
+     * @param int $categoryId
+     * @param array<string, mixed> $body
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function updateOne(int $categoryId, array $body, int $adminUserId): bool
     {
-        $stm = $this->pdo->prepare("
-            DELETE
-            FROM category
-            WHERE id = {$id}
-            AND company_id = {$this->getCompanyFromAdminUser($adminUserId)}
-        ");
+        $this->validateBody($body);
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        return $stm->execute();
+        if ($companyId === null) {
+            return false;
+        }
+
+        return $this->repository->update($categoryId, trim($body['title']), (bool)$body['active'], $companyId);
     }
 
-    private function getCompanyFromAdminUser($adminUserId)
+    /**
+     * @param int $categoryId
+     * @param int $adminUserId
+     * @return bool
+     */
+    public function deleteOne(int $categoryId, int $adminUserId): bool
     {
-        $query = "
-            SELECT company_id
-            FROM admin_user
-            WHERE id = {$adminUserId}
-        ";
+        $companyId = $this->repository->findCompanyIdByAdminUserId($adminUserId);
 
-        $stm = $this->pdo->prepare($query);
-        
-        $stm->execute();
+        if ($companyId === null) {
+            return false;
+        }
 
-        return $stm->fetch()->company_id;
+        return $this->repository->delete($categoryId, $companyId);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return void
+     */
+    private function validateBody(array $body): void
+    {
+        if (!isset($body['title']) || !is_string($body['title']) || trim($body['title']) === '') {
+            throw new InvalidArgumentException('title must be a non-empty string');
+        }
+
+        if (!array_key_exists('active', $body) || !in_array($body['active'], [true, false, 0, 1], true)) {
+            throw new InvalidArgumentException('active must be a boolean or the integer 0 or 1');
+        }
     }
 }

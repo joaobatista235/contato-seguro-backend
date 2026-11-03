@@ -199,7 +199,8 @@ sem categorias, sem alterar o banco de desenvolvimento.
 categorias padrão. Agora, um `JOIN` com o administrador identifica sua empresa e
 a condição inclui também `company_id IS NULL`. A listagem mantém o campo
 `active`, incluindo categorias inativas como antes; nenhuma funcionalidade nova
-de filtro foi adicionada. Um administrador inexistente retorna uma lista vazia.
+de filtro foi adicionada. Após a padronização de permissões, as rotas de categorias
+rejeitam administradores inexistentes ou sem empresa com HTTP 403.
 
 ### Relatório e histórico de alterações
 
@@ -253,6 +254,13 @@ Os testes de integração criam tabelas e dados conhecidos em SQLite na memória
 substituem temporariamente a conexão e restauram a anterior ao terminar. Nenhum
 dado ou estrutura do banco de desenvolvimento é alterado por esses testes.
 
+A estrutura comum está em `tests/Fixtures/schema.sql`, e os dados de cada
+funcionalidade ficam em arquivos separados na mesma pasta. A classe
+`tests/Support/IntegrationTestCase.php` centraliza o preparo do banco e das
+requisições. Os cenários de categorias, produtos e relatório estão separados por
+funcionalidade, substituindo o antigo `RemainingBugsTest`. O guia
+`tests/README.md` explica como ler e executar os testes.
+
 ```sh
 # Todas as suítes
 docker compose exec app composer test
@@ -269,3 +277,47 @@ após `exec`. O aviso de depreciação do PHPUnit 9.5 no PHP atual é independen
 falha de conversão de preço; a atualização dessa dependência fica para a etapa de
 refatoração. Estas correções não exigem migration, pois não modificam dados nem
 estrutura persistida do banco.
+
+### Padronização de categorias
+
+O fluxo de categorias foi separado em `CategoryController → CategoryService →
+CategoryRepository`. O `CategoryPermissionMiddleware`, aplicado ao grupo
+`/categories`, valida o cabeçalho e chama `CategoryService::validatePermission()`
+antes de executar o controller. O administrador deve existir e pertencer a uma
+empresa. Seu ID validado é passado como atributo da requisição; os métodos do
+controller não repetem essa validação. O controller valida os parâmetros de rota
+e o formato do corpo e monta a resposta HTTP. O service valida os dados de categoria,
+identifica a empresa do administrador e coordena o repository. Todo o SQL de
+categorias, incluindo a consulta auxiliar da empresa do administrador, está no
+repository, com `bindValue()` e tipos PDO explícitos para todos os parâmetros.
+
+Controller, service, repository e model usam `strict_types` e tipagem de parâmetros
+e retornos. As consultas da tabela `category` utilizam
+`fetchAll(PDO::FETCH_CLASS, Category::class)` e retornam arrays de instâncias de `Category`,
+sem expor `PDOStatement` ou `stdClass`. O model mantém os nomes das colunas,
+incluindo `company_id`, e o campo `active` numérico para preservar o JSON atual.
+
+A consulta com JOIN em `getProductCategory()` usa `FETCH_ASSOC` e retorna
+`array<int, array{id: int, title: string}>`. A chamada na busca individual
+de produtos foi adaptada para esse contrato. Essa consulta confere também a
+empresa do próprio produto. Os PHPDocs contêm apenas os tipos de parâmetros e retornos;
+as consultas ficam na variável `$query` antes de `prepare()`. Retornos simples
+podem usar ternário, como a conversão do ID da empresa para `int` ou `null`.
+
+Os utilitários `IntegerValidator::positive()` e `JsonResponse::create()`, em
+`src/Util`, centralizam a validação de inteiros positivos e a construção de
+respostas JSON. São reutilizados pelo controller e pelo middleware de categorias.
+
+Todas as rotas de categorias exigem `admin_user_id` como inteiro positivo. IDs
+de categoria também devem ser inteiros positivos. Valores ausentes ou inválidos
+retornam HTTP 400 com um objeto JSON contendo `error`. Cadastro e atualização
+exigem `title` como texto não vazio e `active` como booleano ou inteiro `0`/`1`;
+o título é salvo sem espaços nas extremidades. Dados inválidos retornam HTTP 400.
+
+As leituras mantêm o formato de lista, inclusive na consulta individual; sem
+resultado, retornam `[]` com HTTP 200. Administradores inexistentes ou sem empresa
+recebem HTTP 403 com um objeto JSON contendo `error`, antes de qualquer ação do
+controller. As gravações mantêm HTTP 200 no sucesso e retornam 404 quando nenhuma
+categoria própria é afetada. Categorias
+padrão e categorias de outra empresa não podem ser editadas ou removidas por
+essas rotas. Não houve alteração no esquema do banco nem no arquivo do Postman.
