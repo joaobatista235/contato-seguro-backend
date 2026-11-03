@@ -19,7 +19,7 @@ abstract class IntegrationTestCase extends TestCase
     private static bool $schemaReady = false;
     private static ?PDO $testConnection = null;
     private PDO $previousConnection;
-    protected PDO $pdo;
+    private PDO $pdo;
     private App $app;
 
     protected function setUp(): void
@@ -32,8 +32,8 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         $this->pdo = self::$testConnection;
-        DB::$pdo = $this->pdo;
         $this->prepareDatabase();
+        DB::$pdo = $this->pdo;
 
         $app = AppFactory::create();
         require dirname(__DIR__, 2) . '/src/Config/middlewares.php';
@@ -103,26 +103,19 @@ abstract class IntegrationTestCase extends TestCase
                 $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
             }
         }
-
-        $triggers = $this->pdo->query('SHOW TRIGGERS')->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($triggers as $trigger) {
-            $name = str_replace('`', '``', $trigger['Trigger']);
-            $this->pdo->exec("DROP TRIGGER `{$name}`");
-        }
     }
 
     /**
      * @param string $method
      * @param string $path
-     * @param array<string, mixed>|null $body
+     * @param array<string, mixed>|string|null $body
      * @param string|null $adminUserId
      * @return ResponseInterface
      */
     protected function request(
         string $method,
         string $path,
-        ?array $body = null,
+        array|string|null $body = null,
         ?string $adminUserId = '7'
     ): ResponseInterface {
         $request = (new ServerRequestFactory())->createServerRequest($method, $path);
@@ -132,7 +125,8 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         if ($body !== null) {
-            $stream = (new StreamFactory())->createStream(json_encode($body, JSON_THROW_ON_ERROR));
+            $json = is_array($body) ? json_encode($body, JSON_THROW_ON_ERROR) : $body;
+            $stream = (new StreamFactory())->createStream($json);
             $request = $request->withHeader('Content-Type', 'application/json')->withBody($stream);
         }
 

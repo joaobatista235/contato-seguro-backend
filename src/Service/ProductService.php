@@ -276,6 +276,7 @@ class ProductService
         if (
             !isset($body['price']) ||
             (!is_int($body['price']) && !is_float($body['price'])) ||
+            !is_finite((float)$body['price']) ||
             $body['price'] < 0
         ) {
             throw new InvalidArgumentException('price must be a non-negative number');

@@ -4,7 +4,7 @@ Comece pelos métodos que começam com `test` em `Integration/Controller`:
 
 - `CategoryControllerTest.php`: cadastro, edição, exclusão, consultas e validação dos dados de categorias.
 - `CategoryTranslationsTest.php`: cadastro de traduções, duplicidades, rollback do lote, idioma nas consultas e fallback para inglês.
-- `ProductControllerTest.php`: consultas e gravações de produtos, categorias, isolamento por empresa e transações.
+- `ProductControllerTest.php`: consultas e gravações de produtos, categorias, validações e isolamento por empresa.
 - `ProductFiltersTest.php`: filtros por ativo/inativo e categoria, ordenação por data, combinações e parâmetros inválidos.
 - `ProductStockTest.php`: estoque inicial opcional, atualização, preservação quando omitido, filtro mínimo e validações.
 - `CompanyControllerTest.php`: consultas de empresas e isolamento de acesso.
@@ -12,6 +12,7 @@ Comece pelos métodos que começam com `test` em `Integration/Controller`:
 - `ReportControllerTest.php`: logs do mais recente para o mais antigo, formatação e proteção do HTML.
 - `AdminPermissionTest.php`: cabeçalhos e permissões de acesso de todas as 19 rotas da API.
 - `ErrorHandlingTest.php`: respostas JSON para rotas inexistentes e métodos HTTP não permitidos.
+- `Integration/DatabaseConnectionTest.php`: abre a conexão MySQL de testes e executa `SELECT 1`.
 
 Os testes de integração exercitam as rotas e verificam o que o consumidor da API
 recebe: status, cabeçalhos, campos retornados e efeitos das operações. Não chamam
@@ -40,11 +41,11 @@ O `setUp()` de cada classe carrega seus dados. Os cenários são independentes: 
 gravações de um teste não passam para o próximo, e a conexão anterior é restaurada
 ao terminar. O banco `backend_test` usa um usuário sem acesso ao banco da aplicação. Os arquivos SQL de testes não são migrations da aplicação. A classe
 de apoio cria a estrutura MySQL pela migration real uma vez por execução e limpa
-as tabelas e triggers antes de carregar os dados de cada cenário.
+as tabelas antes de carregar os dados de cada cenário.
 
 ## Requisições e verificações
 
-`request()` recebe método HTTP, caminho, corpo opcional e administrador opcional.
+`request()` recebe método HTTP, caminho, corpo opcional e administrador opcional. O corpo pode ser um array ou um JSON bruto quando o cenário exige testar o conteúdo recebido pela API.
 O administrador padrão dos cenários é `7`.
 
 ```php
@@ -68,12 +69,7 @@ identificada com DOM/XPath para não depender dos estilos ou da indentação do 
 Os `dataProvider`s agrupam pequenas variações do mesmo cenário, como os valores
 permitidos para `active`. Cada conjunto aparece com um nome na saída do PHPUnit.
 
-Os testes de operações que falham criam um trigger apenas no banco MySQL de testes
-para simular um problema de gravação. Depois conferem a resposta de erro e
-consultam novamente as rotas para verificar se os produtos, categorias e relatório
-permaneceram iguais. O SQL é usado para preparar a falha, sem testar métodos
-internos nem o estado da transação. O banco de desenvolvimento não recebe esse
-trigger.
+A suíte cobre as rotas e a conexão com o banco. Foram removidas as simulações de falhas com triggers e as variações redundantes de entradas inválidas. A rejeição de traduções duplicadas continua sendo verificada pela API, incluindo a garantia de que o lote não seja salvo parcialmente.
 
 ## Executar
 

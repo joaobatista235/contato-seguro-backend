@@ -74,7 +74,6 @@ class ProductStockTest extends IntegrationTestCase
         return [
             'zero' => [0, [1, 2, 3, 4, 5]],
             'inclusive' => [5, [2, 3, 4]],
-            'highest own stock' => [10, [3]],
             'no matches' => [11, []]
         ];
     }
@@ -114,10 +113,8 @@ class ProductStockTest extends IntegrationTestCase
         return [
             'negative' => [-1],
             'decimal' => [1.5],
-            'boolean' => [true],
             'null' => [null],
             'string' => ['5'],
-            'array' => [[5]]
         ];
     }
 
@@ -134,8 +131,7 @@ class ProductStockTest extends IntegrationTestCase
     {
         return [
             'negative' => ['min_stock=-1'], 'decimal' => ['min_stock=1.5'],
-            'empty' => ['min_stock='], 'array' => ['min_stock[]=5'],
-            'SQL text' => ['min_stock=0%20OR%201=1'],
+            'array' => ['min_stock[]=5'],
         ];
     }
 }

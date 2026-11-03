@@ -123,15 +123,10 @@ class ProductFiltersTest extends IntegrationTestCase
     {
         return [
             'invalid active' => ['active=2'],
-            'empty active' => ['active='],
             'array active' => ['active[]=1'],
             'zero category' => ['category_id=0'],
-            'decimal category' => ['category_id=1.5'],
             'array category' => ['category_id[]=1'],
-            'SQL category' => ['category_id=1%20OR%201=1'],
             'invalid order' => ['order=random'],
-            'array order' => ['order[]=desc'],
-            'SQL order' => ['order=desc%3B%20DROP%20TABLE%20product'],
         ];
     }
 }

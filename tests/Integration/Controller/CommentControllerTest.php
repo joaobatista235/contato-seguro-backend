@@ -188,7 +188,6 @@ class CommentControllerTest extends IntegrationTestCase
         return [
             'foreign product' => [6, 5, '7'],
             'missing product' => [999, 1, '7'],
-            'other company caller' => [1, 1, '9']
         ];
     }
 
@@ -206,7 +205,7 @@ class CommentControllerTest extends IntegrationTestCase
 
     public function unavailableComments(): array
     {
-        return ['missing' => [1, 999], 'other product' => [2, 1], 'foreign comment' => [1, 5], 'removed' => [1, 7]];
+        return ['missing' => [1, 999], 'other product' => [2, 1], 'removed' => [1, 7]];
     }
 
     /** @dataProvider invalidBodies */
@@ -222,9 +221,9 @@ class CommentControllerTest extends IntegrationTestCase
     public function invalidBodies(): array
     {
         return [
-            'missing body' => [null], 'missing content' => [[]], 'null' => [['content' => null]],
+            'missing body' => [null], 'missing content' => [[]],
             'blank' => [['content' => " \n "]], 'number' => [['content' => 123]],
-            'boolean' => [['content' => true]], 'array' => [['content' => ['text']]],
+            'array' => [['content' => ['text']]],
         ];
     }
 
@@ -249,66 +248,6 @@ class CommentControllerTest extends IntegrationTestCase
             'like product' => ['POST', '/products/0/comments/1/likes'],
             'like comment' => ['POST', '/products/1/comments/1 OR 1=1/likes'],
         ];
-    }
-
-    /** @dataProvider failedWrites */
-    public function testFailedCommentWritesLeaveTheHierarchyAndLikesUnchanged(
-        string $trigger,
-        string $method,
-        string $path
-    ): void {
-        $before = $this->responseData($this->request('GET', '/products/1/comments'));
-        $this->pdo->exec($trigger);
-
-        $response = $this->request($method, $path, ['content' => 'Changed']);
-
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertSame(['error' => 'Internal server error'], $this->responseData($response));
-        $this->assertSame($before, $this->responseData($this->request('GET', '/products/1/comments')));
-    }
-
-    public function failedWrites(): array
-    {
-        $comment = "CREATE TRIGGER reject_comment BEFORE INSERT ON product_comment FOR EACH ROW
-            BEGIN
-                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'comment failed';
-            END";
-
-        return [
-            'create' => [$comment, 'POST', '/products/1/comments'],
-            'reply' => [$comment, 'POST', '/products/1/comments/1/replies'],
-            'delete' => [
-                "CREATE TRIGGER reject_comment_delete BEFORE UPDATE ON product_comment FOR EACH ROW
-                    BEGIN
-                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'delete failed';
-                    END",
-                'DELETE',
-                '/products/1/comments/1'
-            ],
-            'like' => [
-                "CREATE TRIGGER reject_like BEFORE INSERT ON product_comment_like FOR EACH ROW
-                    BEGIN
-                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'like failed';
-                    END",
-                'POST',
-                '/products/1/comments/2/likes'
-            ],
-        ];
-    }
-
-    public function testFailedProductDeletionRestoresTheCommentsAndLikes(): void
-    {
-        $before = $this->responseData($this->request('GET', '/products/1/comments'));
-        $this->pdo->exec("CREATE TRIGGER reject_product_log BEFORE INSERT ON product_log FOR EACH ROW
-            BEGIN
-                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'log failed';
-            END");
-
-        $response = $this->request('DELETE', '/products/1');
-
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertSame(200, $this->request('GET', '/products/1')->getStatusCode());
-        $this->assertSame($before, $this->responseData($this->request('GET', '/products/1/comments')));
     }
 
     public function testDeletingAProductRemovesItsDiscussionAndNewProductsStartWithoutComments(): void

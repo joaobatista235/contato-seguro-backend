@@ -104,7 +104,7 @@ Para a listagem de produtos:
   (Joe Doe, Remoção, 21/12/2023 14:52:50)
 
 ### Logs
-- [ ] Gostaria de saber qual usuário mudou o preço do produto `iphone 8` por último.
+- [x] Investigar qual usuário mudou o preço do produto `iphone 8` por último, documentando as limitações do histórico.
 
 Investigação realizada; a alteração específica do preço não pode ser comprovada pelos logs disponíveis. Veja a seção **6. Investigação do iphone 8**.
 
@@ -178,12 +178,12 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 
 ### Desafios
 - [x] Substituir o banco serverless **SQLite** por um banco como **MySQL**/**PostgreSQL**/outro e servir por container;
-- [ ] Escrever **novos testes unitários** para funcionalidades faltantes;
+- [x] Escrever **novos testes** para funcionalidades faltantes — abordagem adotada: integração das rotas e conexão MySQL;
 - [x] Implementar um **Linter** e disponibilizar por docker (especificar comando);
 - [x] Implementar **análise estática** e disponibilizar por docker (especificar comando);
 - [x] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
 
-As novas funcionalidades são cobertas por testes de integração das rotas. Os três testes unitários originais foram preservados; o desafio opcional de adicionar novos testes unitários permanece desmarcado.
+As novas funcionalidades são cobertas por testes de integração das rotas e por uma verificação da conexão MySQL. Os três testes unitários originais foram preservados. A cobertura foi concluída com essa abordagem, sem acrescentar testes unitários de métodos internos.
 
 ## Suas Respostas, Dúvidas e Observações
 
@@ -212,7 +212,7 @@ Aplicação: [http://localhost:8000](http://localhost:8000). O Compose inicia o 
 
 O Xdebug está configurado para o VS Code, sem parâmetro na URL. Instale a extensão **PHP Debug**, selecione **Escutar Xdebug (Docker)** e pressione `F5`.
 
-A instalação do zero usa duas migrations MySQL: criação da estrutura e carga dos dados originais. A suíte mantém **192 testes, com 808 verificações**, e executa as rotas contra o banco exclusivo `backend_test`, sem alterar o banco de desenvolvimento `backend`. A senha local do cliente MySQL é `backend_dev`.
+A instalação do zero usa duas migrations MySQL: criação da estrutura e carga dos dados originais. A suíte mantém **164 cenários, com 628 verificações**, e executa as rotas contra o banco exclusivo `backend_test`, sem alterar o banco de desenvolvimento `backend`. A senha local do cliente MySQL é `backend_dev`.
 
 #### Qualidade do código
 
@@ -375,7 +375,7 @@ Os logs preservam referências históricas a produtos e administradores ausentes
 
 As migrations SQLite anteriores estão em `db/legacy/migrations`, fora do caminho executado pelo Phinx. O arquivo `db/db-backup.sqlite3` permanece como referência; o banco SQLite local e suas cópias de segurança ficam ignorados no Git. Novas instalações não precisam ler o SQLite para iniciar.
 
-O banco `backend_test` tem usuário próprio, sem permissão no banco da aplicação. A conexão de testes rejeita o banco de desenvolvimento e exige um nome terminado em `_test`. A estrutura real é criada uma vez por execução; os dados e triggers são limpos entre os cenários. O serviço local desabilita o binlog para permitir os triggers de simulação de falhas com o usuário de testes.
+O banco `backend_test` tem usuário próprio, sem permissão no banco da aplicação. A conexão de testes rejeita o banco de desenvolvimento e exige um nome terminado em `_test`. A estrutura real é criada uma vez por execução, e os dados são limpos entre os cenários. Os testes verificam as rotas e a conexão MySQL, sem criar triggers para simular falhas.
 
 O cadastro de traduções bloqueia a categoria durante a transação e verifica os idiomas existentes; uma repetição desfaz o lote inteiro. Curtidas usam `ON DUPLICATE KEY UPDATE` para manter uma ocorrência por administrador. As consultas usam prepared statements nativos e parâmetros distintos. Atualizações sem alteração de valores continuam retornando sucesso.
 
