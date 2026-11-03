@@ -162,6 +162,7 @@ class CategoryRepository
                 WHERE
                     id = :category_id AND
                     company_id = :company_id
+                FOR UPDATE
             ";
 
             $stm = $this->pdo->prepare($query);

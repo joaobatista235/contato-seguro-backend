@@ -7,10 +7,10 @@ INSERT INTO admin_user (id, company_id, email, name) VALUES
     (9, 77, 'eve@example.test', 'Eve');
 
 INSERT INTO product (id, company_id, title, price, active, created_at) VALUES
-    (1, 42, 'king size bed', 999.99, 1, '2023-12-01'),
-    (2, 42, 'uncategorized product', 10, 1, '2023-12-01'),
-    (3, 42, 'iphone 8', 399.99, 1, '2023-12-01'),
-    (4, 77, 'another company product', 100, 1, '2023-12-01');
+    (1, 42, 'king size bed', 999.99, 1, '2023-12-01 00:00:00'),
+    (2, 42, 'uncategorized product', 10, 1, '2023-12-01 00:00:00'),
+    (3, 42, 'iphone 8', 399.99, 1, '2023-12-01 00:00:00'),
+    (4, 77, 'another company product', 100, 1, '2023-12-01 00:00:00');
 
 INSERT INTO category (id, company_id, title, active) VALUES
     (1, NULL, 'house', 1),

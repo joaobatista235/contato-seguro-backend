@@ -75,9 +75,9 @@ class CategoryControllerTest extends IntegrationTestCase
         $this->assertSame(200, $translation->getStatusCode());
         $categories = $this->responseData($this->request('GET', '/categories'));
         $products = $this->responseData($this->request('GET', '/products'));
-        $this->pdo->exec("CREATE TRIGGER reject_category_delete BEFORE DELETE ON category
+        $this->pdo->exec("CREATE TRIGGER reject_category_delete BEFORE DELETE ON category FOR EACH ROW
             BEGIN
-                SELECT RAISE(ABORT, 'category delete failed');
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'category delete failed';
             END");
 
         $response = $this->request('DELETE', '/categories/2');

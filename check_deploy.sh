@@ -8,7 +8,7 @@ printf 'Validando composer.json e composer.lock...\n'
 composer validate --no-check-publish
 
 printf '\nVerificando a sintaxe do PHP...\n'
-find src public tests db/migrations -type f -name '*.php' -print0 | xargs -0 -n 1 php -l
+find src public tests db/migrations phinx.php -type f -name '*.php' -print0 | xargs -0 -n 1 php -l
 
 printf '\nVerificando o padrão do código...\n'
 composer lint

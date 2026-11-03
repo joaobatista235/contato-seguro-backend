@@ -14,7 +14,7 @@ Existe uma seção ao fim do _README_ chamada **"Suas Respostas, Dúvidas e Obse
 - Docker com Docker Compose;
 - Porta `8000` disponível.
 
-PHP 8.3, Composer e suporte ao SQLite são fornecidos pelo container.
+PHP 8.3, Composer e a extensão PDO MySQL são fornecidos pelo container da aplicação. O MySQL 8.4 roda em um serviço separado.
 
 ### Instalação
 
@@ -62,12 +62,12 @@ A coleção atualizada da API está em `docs/postman-api.json`; `docs/api-docs.p
   - O _header_ `admin_user_id` na documentação está indicado com valor `1` mas pode ser usado o id de qualquer outro usuário caso deseje (_pesquisando no banco de dados é possível ver os outros id's de usuários_).
 
 ## Sobre o Banco de Dados
-- O banco de dados é um _sqlite_ simples e já vem com dados preenchidos por padrão no projeto;
-- O banco tem um arquivo de backup em `db/db-backup.sqlite3` com o estado inicial do projeto caso precise ser "resetado".
+- A aplicação usa MySQL 8.4, com os dados originais do case carregados por migration;
+- `db/db-backup.sqlite3` preserva o backup SQLite original apenas como referência. A carga MySQL usa a exportação versionada `db/data/initial_data.json`.
 
 ### Migrations
 - Funcionalidades que exijam modificações no banco de dados (seja nos dados ou estrutura) **devem estar contidas em _migrations_**, não enviadas diretamente com o banco;
-- **Seu arquivo de banco** `db.sqlite3` **não será utilizado para avaliação** do teste, por isso é importante persistir mudanças necessárias em migrations;
+- **Bancos e volumes locais não serão utilizados para avaliação** do teste, por isso é importante persistir a estrutura e os dados iniciais em migrations;
 - A biblioteca utilizada para migrations foi o [**_Phinx_**](https://book.cakephp.org/phinx/0/en/index.html);
 - As migrations criadas **devem poder ser revertidas** (método `down()`);
 Comandos do Composer, executados dentro do container:
@@ -177,7 +177,7 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 - [x] Possibilitar que os **_testes unitários_ sejam executados por docker** (especificar comando).
 
 ### Desafios
-- [ ] Substituir o banco serverless **SQLite** por um banco como **MySQL**/**PostgreSQL**/outro e servir por container;
+- [x] Substituir o banco serverless **SQLite** por um banco como **MySQL**/**PostgreSQL**/outro e servir por container;
 - [ ] Escrever **novos testes unitários** para funcionalidades faltantes;
 - [x] Implementar um **Linter** e disponibilizar por docker (especificar comando);
 - [x] Implementar **análise estática** e disponibilizar por docker (especificar comando);
@@ -195,7 +195,7 @@ Requisito: Docker com Compose.
 docker compose up -d --build
 ```
 
-Aplicação: [http://localhost:8000](http://localhost:8000). O container instala as dependências, prepara o SQLite a partir do backup original se o banco ainda não existir e aplica as migrations pendentes.
+Aplicação: [http://localhost:8000](http://localhost:8000). O Compose inicia o MySQL, aguarda o healthcheck, instala as dependências e aplica as migrations antes de iniciar a API. Os dados ficam no volume Docker `mysql`; `docker compose down` preserva esse volume.
 
 | Ação | Comando |
 |---|---|
@@ -207,11 +207,12 @@ Aplicação: [http://localhost:8000](http://localhost:8000). O container instala
 | Aplicar migrations | `docker compose exec app composer migrate` |
 | Criar uma migration | `docker compose exec app composer create-migration NomeDaMigration` |
 | Reverter a última migration | `docker compose exec app composer rollback-migration` |
+| Abrir o cliente MySQL | `docker compose exec db mysql -u backend -p backend` |
 | Encerrar o ambiente | `docker compose down` |
 
 O Xdebug está configurado para o VS Code, sem parâmetro na URL. Instale a extensão **PHP Debug**, selecione **Escutar Xdebug (Docker)** e pressione `F5`.
 
-A instalação a partir de um clone limpo foi validada com as quatro migrations e **192 testes, com 807 verificações**. Os testes usam SQLite isolado e não alteram o banco de desenvolvimento.
+A instalação do zero usa duas migrations MySQL: criação da estrutura e carga dos dados originais. A suíte mantém **192 testes, com 808 verificações**, e executa as rotas contra o banco exclusivo `backend_test`, sem alterar o banco de desenvolvimento `backend`. A senha local do cliente MySQL é `backend_dev`.
 
 #### Qualidade do código
 
@@ -235,12 +236,12 @@ Os valores iniciais apontam para a empresa `1`, produto `1` e categoria personal
 | Categorias padrão ausentes | Incluídas as categorias com `company_id IS NULL`. |
 | Produto retornava uma única categoria | Todas as categorias disponíveis são retornadas em uma lista, com um registro por produto. |
 | Preço perdia os centavos | A conversão de `price` em `hydrateByFetch()` passou de `int` para `float`. |
-| Logs apareciam como array no relatório | Formatação com nome, ação e data, em ordem cronológica. |
+| Logs apareciam como array no relatório | Formatação com nome, ação e data, do mais recente para o mais antigo. |
 | Categoria excluída deixava vínculos antigos | Exclusão da categoria e de suas associações na mesma transação. |
 | Produto novo herdava histórico antigo | Migration impede a reutilização de IDs de produtos. |
 | Erros retornavam HTML com status 200 | Tratamento central de exceções com status HTTP e corpo JSON. |
 
-O relatório usa o formato `(Nome, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss)`. Usuários ausentes aparecem como `Usuário #ID`; produtos sem logs têm a coluna vazia. Os textos são escapados no HTML, e as datas mantêm o horário armazenado no banco.
+O relatório usa o formato `(Nome, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss)`, com logs em ordem decrescente de data e ID. Usuários ausentes aparecem como `Usuário #ID`; produtos sem logs têm a coluna vazia. Os textos são escapados no HTML, e as datas mantêm o horário armazenado no banco.
 
 ### 3. API e validações
 
@@ -363,17 +364,20 @@ As dependências são criadas nos construtores. O código usa `strict_types`, pa
 
 ### 5. Banco e migrations
 
-O backup original `db/db-backup.sqlite3` está incluído no Git. O banco de trabalho e as cópias locais de segurança permanecem ignorados.
+O MySQL 8.4 usa InnoDB, `utf8mb4` e horário UTC. `phinx.php` e `DB.php` leem as variáveis `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` e `DB_PASSWORD`. O Compose fornece valores locais de desenvolvimento, sem edição de arquivos. As credenciais são exemplos para desenvolvimento; o banco não publica uma porta no host.
 
-A migration [PreventProductIdReuse](db/migrations/20261102000000_prevent_product_id_reuse.php) configura `product.id` com `AUTOINCREMENT`, reservando também os IDs encontrados nos logs históricos. Preserva registros, índices, triggers e a referência à empresa.
+| Migration | Responsabilidade |
+|---|---|
+| [CreateMysqlSchema](db/migrations/20261103030000_create_mysql_schema.php) | Cria tabelas, índices e relacionamentos de todas as funcionalidades. O `down()` remove essa estrutura. |
+| [ImportInitialData](db/migrations/20261103040000_import_initial_data.php) | Importa `db/data/initial_data.json`, preservando IDs, preços e datas. Reserva também os IDs de produtos encontrados nos logs. O `down()` remove os registros importados. |
 
-O método `down()` restaura a chave original e remove essa proteção. Aplicação, rollback e reaplicação foram verificados em uma cópia do banco original, sem perda de dados. A migration previne novas colisões; não separa históricos que já tenham sido misturados.
+Os logs preservam referências históricas a produtos e administradores ausentes, sem chaves estrangeiras que impeçam esses registros ou a exclusão de produtos. Nas demais relações, as chaves estrangeiras estão ativas. Preços usam `DOUBLE` para manter o contrato numérico existente, sem introduzir arredondamento obrigatório para duas casas.
 
-A migration [AddProductStock](db/migrations/20261103000000_add_product_stock.php) adiciona `product.stock` com valor padrão `0`, inclusive para produtos existentes. O `down()` remove a coluna e seus valores de estoque, preservando os demais dados.
+As migrations SQLite anteriores estão em `db/legacy/migrations`, fora do caminho executado pelo Phinx. O arquivo `db/db-backup.sqlite3` permanece como referência; o banco SQLite local e suas cópias de segurança ficam ignorados no Git. Novas instalações não precisam ler o SQLite para iniciar.
 
-A migration [AddCategoryTranslations](db/migrations/20261103010000_add_category_translations.php) cria `category_translation`, com idioma único por categoria. O `down()` remove essa tabela e as traduções, preservando categorias e produtos. O cadastro do lote e a remoção das traduções junto à categoria usam transações.
+O banco `backend_test` tem usuário próprio, sem permissão no banco da aplicação. A conexão de testes rejeita o banco de desenvolvimento e exige um nome terminado em `_test`. A estrutura real é criada uma vez por execução; os dados e triggers são limpos entre os cenários. O serviço local desabilita o binlog para permitir os triggers de simulação de falhas com o usuário de testes.
 
-A migration [AddProductComments](db/migrations/20261103020000_add_product_comments.php) cria `product_comment` e `product_comment_like`, com uma curtida por administrador em cada comentário. O `down()` remove essas tabelas e seus dados, preservando os produtos e as demais funcionalidades.
+O cadastro de traduções bloqueia a categoria durante a transação e verifica os idiomas existentes; uma repetição desfaz o lote inteiro. Curtidas usam `ON DUPLICATE KEY UPDATE` para manter uma ocorrência por administrador. As consultas usam prepared statements nativos e parâmetros distintos. Atualizações sem alteração de valores continuam retornando sucesso.
 
 ### 6. Investigação do iphone 8
 

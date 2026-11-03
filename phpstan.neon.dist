@@ -6,6 +6,7 @@ parameters:
         - public
         - tests
         - db/migrations
+        - phinx.php
     bootstrapFiles:
         - tests/bootstrap.php
     tmpDir: .cache/phpstan

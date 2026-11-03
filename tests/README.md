@@ -9,7 +9,7 @@ Comece pelos métodos que começam com `test` em `Integration/Controller`:
 - `ProductStockTest.php`: estoque inicial opcional, atualização, preservação quando omitido, filtro mínimo e validações.
 - `CompanyControllerTest.php`: consultas de empresas e isolamento de acesso.
 - `CommentControllerTest.php`: comentários, respostas em vários níveis, remoção pelo autor, curtidas, permissões e integração com a exclusão de produtos.
-- `ReportControllerTest.php`: formatação dos logs e proteção do HTML.
+- `ReportControllerTest.php`: logs do mais recente para o mais antigo, formatação e proteção do HTML.
 - `AdminPermissionTest.php`: cabeçalhos e permissões de acesso de todas as 19 rotas da API.
 - `ErrorHandlingTest.php`: respostas JSON para rotas inexistentes e métodos HTTP não permitidos.
 
@@ -31,16 +31,16 @@ $this->assertSame(200, $response->getStatusCode());
 
 ## Arquivos de apoio
 
-- `Fixtures/schema.sql` define uma única estrutura de banco para os testes.
+- A migration `CreateMysqlSchema` define a estrutura real usada também pelos testes.
 - `Fixtures/categories.sql`, `products.sql`, `product_filters.sql`, `product_stock.sql`, `comments.sql` e `report.sql` contêm os dados de cada funcionalidade.
-- `Support/IntegrationTestCase.php` cria um SQLite em memória para cada teste, carrega a estrutura, os middlewares globais e as rotas com suas verificações de permissão.
+- `Support/IntegrationTestCase.php` usa a conexão MySQL exclusiva de testes, limpa os dados de cada cenário e carrega os middlewares e as rotas reais.
 - `bootstrap.php` carrega o Composer e a classe de apoio.
 
 O `setUp()` de cada classe carrega seus dados. Os cenários são independentes: as
 gravações de um teste não passam para o próximo, e a conexão anterior é restaurada
-ao terminar. Os arquivos SQL de testes não são migrations da aplicação. A classe
-de apoio aplica as migrations reais de proteção dos IDs, estoque, traduções e comentários após criar a estrutura,
-antes de carregar os dados de cada cenário.
+ao terminar. O banco `backend_test` usa um usuário sem acesso ao banco da aplicação. Os arquivos SQL de testes não são migrations da aplicação. A classe
+de apoio cria a estrutura MySQL pela migration real uma vez por execução e limpa
+as tabelas e triggers antes de carregar os dados de cada cenário.
 
 ## Requisições e verificações
 
@@ -68,7 +68,7 @@ identificada com DOM/XPath para não depender dos estilos ou da indentação do 
 Os `dataProvider`s agrupam pequenas variações do mesmo cenário, como os valores
 permitidos para `active`. Cada conjunto aparece com um nome na saída do PHPUnit.
 
-Os testes de operações que falham criam um trigger apenas no banco em memória
+Os testes de operações que falham criam um trigger apenas no banco MySQL de testes
 para simular um problema de gravação. Depois conferem a resposta de erro e
 consultam novamente as rotas para verificar se os produtos, categorias e relatório
 permaneceram iguais. O SQL é usado para preparar a falha, sem testar métodos

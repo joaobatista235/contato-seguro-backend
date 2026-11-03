@@ -23,7 +23,7 @@ class ProductControllerTest extends IntegrationTestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame($id, $product['id']);
         $this->assertSame(42, $product['companyId']);
-        $this->assertSame('2023-12-01', $product['createdAt']);
+        $this->assertSame('2023-12-01 00:00:00', $product['createdAt']);
         $this->assertSame($categories, $product['category']);
     }
 
@@ -47,7 +47,7 @@ class ProductControllerTest extends IntegrationTestCase
         $this->assertSame([], $products[1]['category']);
         $this->assertSame(['phone'], $products[2]['category']);
         $this->assertSame(42, $products[0]['company_id']);
-        $this->assertSame('2023-12-01', $products[0]['created_at']);
+        $this->assertSame('2023-12-01 00:00:00', $products[0]['created_at']);
         $this->assertArrayNotHasKey('category_id', $products[0]);
     }
 
@@ -75,14 +75,17 @@ class ProductControllerTest extends IntegrationTestCase
 
     public function testUpdateChangesProductDataCategoriesAndAuditAuthor(): void
     {
-        $response = $this->request('PUT', '/products/1', [
+        $body = [
             'company_id' => 42, 'title' => "Updated O'Reilly", 'price' => 123.45,
             'active' => 0, 'category_id' => 5,
-        ]);
+        ];
+        $response = $this->request('PUT', '/products/1', $body);
+        $repeated = $this->request('PUT', '/products/1', $body);
         $product = $this->responseData($this->request('GET', '/products/1'));
         $report = (string)$this->request('GET', '/report')->getBody();
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(200, $repeated->getStatusCode());
         $this->assertSame("Updated O'Reilly", $product['title']);
         $this->assertSame(123.45, $product['price']);
         $this->assertFalse($product['active']);
@@ -214,9 +217,9 @@ class ProductControllerTest extends IntegrationTestCase
     {
         $products = $this->responseData($this->request('GET', '/products'));
         $report = (string)$this->request('GET', '/report')->getBody();
-        $this->pdo->exec("CREATE TRIGGER reject_log BEFORE INSERT ON product_log
+        $this->pdo->exec("CREATE TRIGGER reject_log BEFORE INSERT ON product_log FOR EACH ROW
             BEGIN
-                SELECT RAISE(ABORT, 'log failed');
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'log failed';
             END");
 
         $response = $this->request($method, $path, [

@@ -80,23 +80,32 @@ class CategoryTranslationRepository
         $this->pdo->beginTransaction();
 
         try {
+            $query = "SELECT id FROM category WHERE id = :category_id FOR UPDATE";
+            $stm = $this->pdo->prepare($query);
+            $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+            $stm->execute();
+
+            if ($stm->fetchColumn() === false) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
             $query = "
                 INSERT INTO category_translation (category_id, lang_code, label)
                 VALUES (:category_id, :lang_code, :label)
-                ON CONFLICT (category_id, lang_code) DO NOTHING
             ";
             $stm = $this->pdo->prepare($query);
             $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
 
             foreach ($translations as $translation) {
-                $stm->bindValue(':lang_code', $translation['lang_code'], PDO::PARAM_STR);
-                $stm->bindValue(':label', $translation['label'], PDO::PARAM_STR);
-                $stm->execute();
-
-                if ($stm->rowCount() === 0) {
+                if ($this->existsForCategory($categoryId, $translation['lang_code'])) {
                     $this->pdo->rollBack();
                     return false;
                 }
+
+                $stm->bindValue(':lang_code', $translation['lang_code'], PDO::PARAM_STR);
+                $stm->bindValue(':label', $translation['label'], PDO::PARAM_STR);
+                $stm->execute();
             }
 
             $this->pdo->commit();
@@ -108,5 +117,29 @@ class CategoryTranslationRepository
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param int $categoryId
+     * @param string $lang
+     * @return bool
+     */
+    private function existsForCategory(int $categoryId, string $lang): bool
+    {
+        $query = "
+            SELECT
+                id
+            FROM category_translation
+            WHERE
+                category_id = :category_id AND
+                lang_code = :lang
+        ";
+
+        $stm = $this->pdo->prepare($query);
+        $stm->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+        $stm->bindValue(':lang', $lang, PDO::PARAM_STR);
+        $stm->execute();
+
+        return $stm->fetchColumn() !== false;
     }
 }

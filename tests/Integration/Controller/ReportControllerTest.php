@@ -16,7 +16,7 @@ class ReportControllerTest extends IntegrationTestCase
         $this->loadFixture('report.sql');
     }
 
-    public function testReportDisplaysProductsCategoriesAndChronologicalAuditHistory(): void
+    public function testReportDisplaysProductsCategoriesAndNewestAuditEntriesFirst(): void
     {
         $response = $this->request('GET', '/report');
         $html = (string)$response->getBody();
@@ -30,8 +30,8 @@ class ReportControllerTest extends IntegrationTestCase
         $this->assertStringContainsString($created, $html);
         $this->assertStringContainsString($updated, $html);
         $this->assertStringContainsString($deleted, $html);
-        $this->assertLessThan(strpos($html, $updated), strpos($html, $created));
-        $this->assertLessThan(strpos($html, $deleted), strpos($html, $updated));
+        $this->assertLessThan(strpos($html, $created), strpos($html, $updated));
+        $this->assertLessThan(strpos($html, $updated), strpos($html, $deleted));
     }
 
     public function testProductsWithoutLogsAppearWithAnEmptyAuditColumn(): void

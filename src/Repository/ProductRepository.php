@@ -299,7 +299,7 @@ class ProductRepository
             WHERE
                 pl.product_id = :product_id AND
                 p.company_id = :company_id
-            ORDER BY pl.timestamp, pl.id
+            ORDER BY pl.timestamp DESC, pl.id DESC
         ";
 
         $stm = $this->pdo->prepare($query);

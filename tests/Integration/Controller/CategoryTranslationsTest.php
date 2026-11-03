@@ -207,10 +207,11 @@ class CategoryTranslationsTest extends IntegrationTestCase
 
     public function testDatabaseFailureRollsBackTheEntireTranslationBatch(): void
     {
-        $this->pdo->exec("CREATE TRIGGER reject_translation BEFORE INSERT ON category_translation
-            WHEN NEW.lang_code = 'de'
+        $this->pdo->exec("CREATE TRIGGER reject_translation BEFORE INSERT ON category_translation FOR EACH ROW
             BEGIN
-                SELECT RAISE(ABORT, 'translation failed');
+                IF NEW.lang_code = 'de' THEN
+                    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'translation failed';
+                END IF;
             END");
         $response = $this->request('POST', '/categories/2', ['translations' => [
             ['lang_code' => 'pt', 'label' => 'Móveis'],

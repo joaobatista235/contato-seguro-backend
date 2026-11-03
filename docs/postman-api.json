@@ -70,7 +70,7 @@
               }
             ],
             "url": "{{base_url}}{{report}}",
-            "description": "GET /report (sem barra final): relatório HTML com logs no formato (Nome do usuário, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss), separados por vírgula e quebra de linha. Usuários ausentes aparecem como Usuário #ID."
+            "description": "GET /report (sem barra final): relatório HTML com logs no formato (Nome do usuário, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss), separados por vírgula e quebra de linha. Usuários ausentes aparecem como Usuário #ID. Logs em ordem decrescente de data e ID, do mais recente para o mais antigo."
           },
           "response": []
         }

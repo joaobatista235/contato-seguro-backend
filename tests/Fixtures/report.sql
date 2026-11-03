@@ -8,9 +8,9 @@ INSERT INTO admin_user (id, company_id, email, name) VALUES
     (9, 77, 'eve@example.test', 'Eve');
 
 INSERT INTO product (id, company_id, title, price, active, created_at) VALUES
-    (1, 42, '<script>unsafe</script>', 999.99, 1, '2023-12-01'),
-    (2, 42, 'Product without logs', 10, 1, '2023-12-01'),
-    (3, 77, 'Foreign product', 100, 1, '2023-12-01');
+    (1, 42, '<script>unsafe</script>', 999.99, 1, '2023-12-01 00:00:00'),
+    (2, 42, 'Product without logs', 10, 1, '2023-12-01 00:00:00'),
+    (3, 77, 'Foreign product', 100, 1, '2023-12-01 00:00:00');
 
 INSERT INTO category (id, company_id, title, active) VALUES
     (1, NULL, 'clothing', 1),

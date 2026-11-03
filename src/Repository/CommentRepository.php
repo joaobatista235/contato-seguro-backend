@@ -98,13 +98,13 @@ class CommentRepository
             SELECT
                 p.id, :parent_id, :admin_user_id, :content
             FROM product p
-            LEFT JOIN product_comment parent ON parent.id = :parent_id AND
+            LEFT JOIN product_comment parent ON parent.id = :parent_lookup_id AND
                 parent.product_id = p.id AND
                 parent.deleted_at IS NULL
             WHERE
                 p.id = :product_id AND
                 p.company_id = :company_id AND
-                (:parent_id IS NULL OR parent.id IS NOT NULL)
+                (:root_comment = 1 OR parent.id IS NOT NULL)
         ";
 
         $stm = $this->pdo->prepare($query);
@@ -113,6 +113,8 @@ class CommentRepository
         $stm->bindValue(':admin_user_id', $adminUserId, PDO::PARAM_INT);
         $stm->bindValue(':content', $content, PDO::PARAM_STR);
         $stm->bindValue(':parent_id', $parentId, $parentId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stm->bindValue(':parent_lookup_id', $parentId, $parentId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stm->bindValue(':root_comment', (int)($parentId === null), PDO::PARAM_INT);
         $stm->execute();
 
         return $stm->rowCount() > 0 ? (int)$this->pdo->lastInsertId() : null;
@@ -165,7 +167,7 @@ class CommentRepository
                 cm.product_id = :product_id AND
                 p.company_id = :company_id AND
                 cm.deleted_at IS NULL
-            ON CONFLICT (comment_id, admin_user_id) DO NOTHING
+            ON DUPLICATE KEY UPDATE comment_id = product_comment_like.comment_id
         ";
 
         $stm = $this->pdo->prepare($query);
@@ -183,11 +185,18 @@ class CommentRepository
     public function deleteForProduct(int $productId): void
     {
         $query = "
-            DELETE FROM product_comment_like
+            DELETE cl
+            FROM product_comment_like cl
+            INNER JOIN product_comment cm ON cm.id = cl.comment_id
             WHERE
-                comment_id IN (SELECT id FROM product_comment WHERE product_id = :product_id)
+                cm.product_id = :product_id
         ";
 
+        $stm = $this->pdo->prepare($query);
+        $stm->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stm->execute();
+
+        $query = "UPDATE product_comment SET parent_id = NULL WHERE product_id = :product_id";
         $stm = $this->pdo->prepare($query);
         $stm->bindValue(':product_id', $productId, PDO::PARAM_INT);
         $stm->execute();

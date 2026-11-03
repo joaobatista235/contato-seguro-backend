@@ -269,26 +269,26 @@ class CommentControllerTest extends IntegrationTestCase
 
     public function failedWrites(): array
     {
-        $comment = "CREATE TRIGGER reject_comment BEFORE INSERT ON product_comment
+        $comment = "CREATE TRIGGER reject_comment BEFORE INSERT ON product_comment FOR EACH ROW
             BEGIN
-                SELECT RAISE(ABORT, 'comment failed');
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'comment failed';
             END";
 
         return [
             'create' => [$comment, 'POST', '/products/1/comments'],
             'reply' => [$comment, 'POST', '/products/1/comments/1/replies'],
             'delete' => [
-                "CREATE TRIGGER reject_comment_delete BEFORE UPDATE ON product_comment
+                "CREATE TRIGGER reject_comment_delete BEFORE UPDATE ON product_comment FOR EACH ROW
                     BEGIN
-                        SELECT RAISE(ABORT, 'delete failed');
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'delete failed';
                     END",
                 'DELETE',
                 '/products/1/comments/1'
             ],
             'like' => [
-                "CREATE TRIGGER reject_like BEFORE INSERT ON product_comment_like
+                "CREATE TRIGGER reject_like BEFORE INSERT ON product_comment_like FOR EACH ROW
                     BEGIN
-                        SELECT RAISE(ABORT, 'like failed');
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'like failed';
                     END",
                 'POST',
                 '/products/1/comments/2/likes'
@@ -299,9 +299,9 @@ class CommentControllerTest extends IntegrationTestCase
     public function testFailedProductDeletionRestoresTheCommentsAndLikes(): void
     {
         $before = $this->responseData($this->request('GET', '/products/1/comments'));
-        $this->pdo->exec("CREATE TRIGGER reject_product_log BEFORE INSERT ON product_log
+        $this->pdo->exec("CREATE TRIGGER reject_product_log BEFORE INSERT ON product_log FOR EACH ROW
             BEGIN
-                SELECT RAISE(ABORT, 'log failed');
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'log failed';
             END");
 
         $response = $this->request('DELETE', '/products/1');
