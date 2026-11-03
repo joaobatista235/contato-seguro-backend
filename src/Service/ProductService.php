@@ -35,17 +35,24 @@ class ProductService
 
     /**
      * @param int $adminUserId
+     * @param array<string, mixed> $queryParams
      * @return array<int, array<string, mixed>>
      */
-    public function getAll(int $adminUserId): array
+    public function getAll(int $adminUserId, array $queryParams = []): array
     {
+        $filters = $this->validateFilters($queryParams);
         $companyId = $this->adminUserService->getCompanyId($adminUserId);
 
         if ($companyId === null) {
             return [];
         }
 
-        $rows = $this->repository->findAllForCompany($companyId);
+        $rows = $this->repository->findAllForCompany(
+            $companyId,
+            $filters['active'],
+            $filters['category_id'],
+            $filters['order']
+        );
         $products = [];
 
         foreach ($rows as $row) {
@@ -246,5 +253,46 @@ class ProductService
         if (IntegerValidator::positive($body['category_id'] ?? null) === null) {
             throw new InvalidArgumentException('category_id must be a positive integer');
         }
+    }
+
+    /**
+     * @param array<string, mixed> $queryParams
+     * @return array{active: bool|null, category_id: int|null, order: string|null}
+     */
+    private function validateFilters(array $queryParams): array
+    {
+        $active = null;
+        $categoryId = null;
+        $order = null;
+
+        if (array_key_exists('active', $queryParams)) {
+            if (!in_array($queryParams['active'], ['0', '1', 'false', 'true'], true)) {
+                throw new InvalidArgumentException('active must be 0, 1, false or true');
+            }
+
+            $active = in_array($queryParams['active'], ['1', 'true'], true);
+        }
+
+        if (array_key_exists('category_id', $queryParams)) {
+            $categoryId = IntegerValidator::positive($queryParams['category_id']);
+
+            if ($categoryId === null) {
+                throw new InvalidArgumentException('category_id must be a positive integer');
+            }
+        }
+
+        if (array_key_exists('order', $queryParams)) {
+            if (!is_string($queryParams['order'])) {
+                throw new InvalidArgumentException('order must be asc or desc');
+            }
+
+            $order = strtolower($queryParams['order']);
+
+            if (!in_array($order, ['asc', 'desc'], true)) {
+                throw new InvalidArgumentException('order must be asc or desc');
+            }
+        }
+
+        return ['active' => $active, 'category_id' => $categoryId, 'order' => $order];
     }
 }

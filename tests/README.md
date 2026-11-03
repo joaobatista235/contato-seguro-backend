@@ -4,6 +4,7 @@ Comece pelos métodos que começam com `test` em `Integration/Controller`:
 
 - `CategoryControllerTest.php`: cadastro, edição, exclusão, consultas e validação dos dados de categorias.
 - `ProductControllerTest.php`: consultas e gravações de produtos, categorias, isolamento por empresa e transações.
+- `ProductFiltersTest.php`: filtros por ativo/inativo e categoria, ordenação por data, combinações e parâmetros inválidos.
 - `CompanyControllerTest.php`: consultas de empresas e isolamento de acesso.
 - `ReportControllerTest.php`: formatação dos logs e proteção do HTML.
 - `AdminPermissionTest.php`: cabeçalhos e permissões de acesso de todas as 13 rotas da API.
@@ -28,7 +29,7 @@ $this->assertSame(200, $response->getStatusCode());
 ## Arquivos de apoio
 
 - `Fixtures/schema.sql` define uma única estrutura de banco para os testes.
-- `Fixtures/categories.sql`, `products.sql` e `report.sql` contêm os dados de cada funcionalidade.
+- `Fixtures/categories.sql`, `products.sql`, `product_filters.sql` e `report.sql` contêm os dados de cada funcionalidade.
 - `Support/IntegrationTestCase.php` cria um SQLite em memória para cada teste, carrega a estrutura, os middlewares globais e as rotas com suas verificações de permissão.
 - `bootstrap.php` carrega o Composer e a classe de apoio.
 

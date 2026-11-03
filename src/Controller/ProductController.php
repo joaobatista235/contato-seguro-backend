@@ -33,7 +33,11 @@ class ProductController
     {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $products = $this->service->getAll($adminUserId);
+        try {
+            $products = $this->service->getAll($adminUserId, $request->getQueryParams());
+        } catch (InvalidArgumentException $exception) {
+            return JsonResponse::create($response, ['error' => $exception->getMessage()], 400);
+        }
 
         return JsonResponse::create($response, $products, 200);
     }

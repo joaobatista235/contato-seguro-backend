@@ -23,29 +23,78 @@ class ProductRepository
 
     /**
      * @param int $companyId
+     * @param bool|null $active
+     * @param int|null $categoryId
+     * @param string|null $order
      * @return array<int, array<string, mixed>>
      */
-    public function findAllForCompany(int $companyId): array
+    public function findAllForCompany(int $companyId, ?bool $active = null, ?int $categoryId = null, ?string $order = null): array
     {
+        [$where, $join, $bind, $orderBy] = $this->buildWhere($companyId, $active, $categoryId, $order);
+
         $query = "
             SELECT
                 DISTINCT p.id, p.company_id, p.title, p.price, p.active, p.created_at,
                 c.id AS category_id, c.title AS category
             FROM product p
+            {$join}
             LEFT JOIN product_category pc ON pc.product_id = p.id
             LEFT JOIN category c ON c.id = pc.cat_id AND
                 c.active = 1 AND
                 (c.company_id IS NULL OR c.company_id = p.company_id)
             WHERE
-                p.company_id = :company_id
-            ORDER BY p.id, c.id
+                {$where}
+            ORDER BY {$orderBy}
         ";
 
         $stm = $this->pdo->prepare($query);
-        $stm->bindValue(':company_id', $companyId, PDO::PARAM_INT);
+
+        foreach ($bind as $parameter => [$value, $type]) {
+            $stm->bindValue($parameter, $value, $type);
+        }
+
         $stm->execute();
 
         return $stm->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param int $companyId
+     * @param bool|null $active
+     * @param int|null $categoryId
+     * @param string|null $order
+     * @return array{0: string, 1: string, 2: array<string, array{0: int, 1: int}>, 3: string}
+     */
+    private function buildWhere(int $companyId, ?bool $active, ?int $categoryId, ?string $order): array
+    {
+        $join = '';
+        $conditions = ['p.company_id = :company_id'];
+        $bind = [':company_id' => [$companyId, PDO::PARAM_INT]];
+
+        if ($categoryId !== null) {
+            $join = "
+            INNER JOIN product_category filtered_pc ON filtered_pc.product_id = p.id
+            INNER JOIN category filtered_c ON filtered_c.id = filtered_pc.cat_id AND
+                filtered_c.id = :category_id AND
+                filtered_c.active = 1 AND
+                (filtered_c.company_id IS NULL OR filtered_c.company_id = p.company_id)
+            ";
+            $bind[':category_id'] = [$categoryId, PDO::PARAM_INT];
+        }
+
+        if ($active !== null) {
+            $conditions[] = 'p.active = :active';
+            $bind[':active'] = [(int)$active, PDO::PARAM_INT];
+        }
+
+        $where = implode(" AND\n                ", $conditions);
+        $orderBy = match ($order) {
+            'asc' => 'p.created_at ASC, p.id ASC, c.id ASC',
+            'desc' => 'p.created_at DESC, p.id ASC, c.id ASC',
+            default => 'p.id, c.id',
+        };
+
+        return [$where, $join, $bind, $orderBy];
     }
 
     /**

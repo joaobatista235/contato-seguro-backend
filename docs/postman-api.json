@@ -76,7 +76,7 @@
 								""
 							]
 						},
-						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém uma lista com todas as categorias ativas disponíveis, ou [] quando não há categorias."
+						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo e order=asc|desc (data de cadastro). Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc."
 					},
 					"response": []
 				},

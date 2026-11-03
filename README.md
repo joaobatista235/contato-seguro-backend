@@ -78,9 +78,9 @@ Modificações requisitadas pelo cliente em funcionalidades já existentes
 
 ### Filtros e Ordenamento
 Para a listagem de produtos:
-- [ ] Gostaria de poder filtrar os produtos ativos ou inativos;
-- [ ] Gostaria de poder filtrar os produtos por categoria;
-- [ ] Gostaria de poder ordenar os produtos por data de cadastro.
+- [x] Gostaria de poder filtrar os produtos ativos ou inativos;
+- [x] Gostaria de poder filtrar os produtos por categoria;
+- [x] Gostaria de poder ordenar os produtos por data de cadastro.
 
 ### Relatório
 - [x] O relatório não está mostrando a coluna de logs corretamente, se possível, gostaria de trazer no seguinte formato:
@@ -218,6 +218,24 @@ O relatório usa o formato `(Nome, Criação/Atualização/Remoção, dd/mm/aaaa
 - Cadastro e atualização de produtos exigem `company_id`, `title`, `price`, `active` e `category_id`. A empresa deve ser a do administrador e a categoria deve estar ativa e disponível para ele.
 - Títulos são textos não vazios, salvos sem espaços nas extremidades. O preço deve ser finito e não negativo; `active` aceita booleano ou inteiro `0`/`1`; IDs devem ser inteiros positivos.
 - A atualização de produto recebe um único `category_id` e substitui os vínculos anteriores por essa categoria.
+
+#### Filtros e ordenação de produtos
+
+Parâmetros opcionais de `GET /products`:
+
+| Parâmetro | Valores | Comportamento |
+|---|---|---|
+| `active` | `1`, `0`, `true`, `false` | Filtra ativos ou inativos. Sem o parâmetro, retorna ambos. |
+| `category_id` | Inteiro positivo | Filtra pela categoria, mantendo todas as categorias disponíveis no produto retornado. |
+| `order` | `asc`, `desc` | Ordena por `created_at`, do mais antigo ou mais recente. Aceita maiúsculas e minúsculas. |
+
+```http
+GET /products?active=0
+GET /products?category_id=2
+GET /products?active=1&category_id=2&order=desc
+```
+
+Os parâmetros podem ser combinados. Sem `order`, mantém a ordem por ID; datas iguais usam o ID crescente como desempate. Categorias inativas, inexistentes ou de outra empresa não retornam produtos. Sem correspondências, a resposta é `[]` com status 200; parâmetros inválidos retornam 400. A ordenação usa opções fixas permitidas, e os valores dos filtros são vinculados com `bindValue()`.
 
 | HTTP | Uso |
 |---|---|
