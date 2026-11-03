@@ -29,8 +29,13 @@ class ProductRepository
      * @param int|null $minStock
      * @return array<int, array<string, mixed>>
      */
-    public function findAllForCompany(int $companyId, ?bool $active = null, ?int $categoryId = null, ?string $order = null, ?int $minStock = null): array
-    {
+    public function findAllForCompany(
+        int $companyId,
+        ?bool $active = null,
+        ?int $categoryId = null,
+        ?string $order = null,
+        ?int $minStock = null
+    ): array {
         [$where, $join, $bind, $orderBy] = $this->buildWhere($companyId, $active, $categoryId, $order, $minStock);
 
         $query = "

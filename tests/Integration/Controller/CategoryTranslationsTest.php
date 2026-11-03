@@ -176,7 +176,11 @@ class CategoryTranslationsTest extends IntegrationTestCase
 
     public function testInvalidCategoryIdReturnsBadRequest(): void
     {
-        $response = $this->request('POST', '/categories/0', ['translations' => [['lang_code' => 'pt', 'label' => 'Casa']]]);
+        $response = $this->request(
+            'POST',
+            '/categories/0',
+            ['translations' => [['lang_code' => 'pt', 'label' => 'Casa']]]
+        );
 
         $this->assertSame(400, $response->getStatusCode());
     }
@@ -193,12 +197,21 @@ class CategoryTranslationsTest extends IntegrationTestCase
 
     public function invalidLanguageQueries(): array
     {
-        return ['empty' => ['lang='], 'array' => ['lang[]=pt'], 'invalid code' => ['lang=123'], 'SQL text' => ['lang=pt%27%20OR%201=1']];
+        return [
+            'empty' => ['lang='],
+            'array' => ['lang[]=pt'],
+            'invalid code' => ['lang=123'],
+            'SQL text' => ['lang=pt%27%20OR%201=1']
+        ];
     }
 
     public function testDatabaseFailureRollsBackTheEntireTranslationBatch(): void
     {
-        $this->pdo->exec("CREATE TRIGGER reject_translation BEFORE INSERT ON category_translation WHEN NEW.lang_code = 'de' BEGIN SELECT RAISE(ABORT, 'translation failed'); END");
+        $this->pdo->exec("CREATE TRIGGER reject_translation BEFORE INSERT ON category_translation
+            WHEN NEW.lang_code = 'de'
+            BEGIN
+                SELECT RAISE(ABORT, 'translation failed');
+            END");
         $response = $this->request('POST', '/categories/2', ['translations' => [
             ['lang_code' => 'pt', 'label' => 'Móveis'],
             ['lang_code' => 'de', 'label' => 'Möbel'],

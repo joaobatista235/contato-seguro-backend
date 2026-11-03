@@ -38,7 +38,7 @@ class ReportService
             'Logs de Alterações',
         ]];
         $company = $this->companyService->getAll($adminUserId)[0] ?? null;
-        $companyName = $company?->name ?? '';
+        $companyName = $company->name ?? '';
 
         foreach ($this->productService->getAll($adminUserId) as $product) {
             $rows[] = [

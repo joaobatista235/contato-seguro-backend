@@ -1,0 +1,11 @@
+parameters:
+    level: 5
+    phpVersion: 80300
+    paths:
+        - src
+        - public
+        - tests
+        - db/migrations
+    bootstrapFiles:
+        - tests/bootstrap.php
+    tmpDir: .cache/phpstan

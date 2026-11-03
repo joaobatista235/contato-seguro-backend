@@ -11,14 +11,21 @@
             "Contatoseguro\\TesteBackend\\": "src/"
         }
     },
-    "scripts":{
+    "scripts": {
         "migrate": "./vendor/bin/phinx migrate",
         "create-migration": "./vendor/bin/phinx create",
         "rollback-migration": "./vendor/bin/phinx rollback",
-
-        "test": ["phpunit --testdox"]
+        "test": [
+            "phpunit --testdox"
+        ],
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "analyse": "phpstan analyse --no-progress",
+        "check": "sh check_deploy.sh"
     },
     "require-dev": {
-        "phpunit/phpunit": "9.5"
+        "phpunit/phpunit": "9.5",
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.1"
     }
 }

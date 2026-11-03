@@ -35,11 +35,19 @@ class AdminPermissionMiddleware implements MiddlewareInterface
         $adminUserId = IntegerValidator::positive($request->getHeaderLine('admin_user_id'));
 
         if ($adminUserId === null) {
-            return JsonResponse::create(new Response(), ['error' => 'admin_user_id header must be a positive integer'], 400);
+            return JsonResponse::create(
+                new Response(),
+                ['error' => 'admin_user_id header must be a positive integer'],
+                400
+            );
         }
 
         if (!$this->service->validatePermission($adminUserId)) {
-            return JsonResponse::create(new Response(), ['error' => 'admin user must exist and belong to a company'], 403);
+            return JsonResponse::create(
+                new Response(),
+                ['error' => 'admin user must exist and belong to a company'],
+                403
+            );
         }
 
         $request = $request->withAttribute('admin_user_id', $adminUserId);

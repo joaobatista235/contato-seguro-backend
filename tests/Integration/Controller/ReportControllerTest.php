@@ -38,7 +38,10 @@ class ReportControllerTest extends IntegrationTestCase
     {
         $response = $this->request('GET', '/report');
         $document = new DOMDocument();
-        $document->loadHTML('<?xml encoding="UTF-8">' . (string)$response->getBody(), LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        $document->loadHTML(
+            '<?xml encoding="UTF-8">' . (string)$response->getBody(),
+            LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING
+        );
         $cells = (new DOMXPath($document))->query("//tr[td[3] = 'Product without logs']/td[last()]");
 
         $this->assertSame(200, $response->getStatusCode());

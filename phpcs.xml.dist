@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="Backend">
+    <file>src</file>
+    <file>public</file>
+    <file>tests</file>
+    <file>db/migrations</file>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="s"/>
+
+    <rule ref="PSR12"/>
+    <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
+        <exclude-pattern>*/db/migrations/*</exclude-pattern>
+    </rule>
+</ruleset>

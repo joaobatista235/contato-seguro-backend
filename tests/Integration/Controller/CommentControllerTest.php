@@ -74,7 +74,12 @@ class CommentControllerTest extends IntegrationTestCase
 
     public function testCanReplyDirectlyToAnotherReplyAndContinueTheHierarchy(): void
     {
-        $first = $this->request('POST', '/products/1/comments/4/replies', ['content' => 'Fourth level'], adminUserId: '8');
+        $first = $this->request(
+            'POST',
+            '/products/1/comments/4/replies',
+            ['content' => 'Fourth level'],
+            adminUserId: '8'
+        );
         $this->assertSame(201, $first->getStatusCode());
         $firstId = $this->responseData($first)['id'];
         $second = $this->request('POST', '/products/1/comments/' . $firstId . '/replies', ['content' => 'Fifth level']);
@@ -127,19 +132,31 @@ class CommentControllerTest extends IntegrationTestCase
         $this->assertSame(['liked' => true], $this->responseData($first));
         $comments = $this->responseData($this->request('GET', '/products/1/comments'))['comments'];
         $this->assertSame(1, $comments[1]['likes']);
-        $this->assertSame(200, $this->request('POST', '/products/1/comments/2/likes', ['admin_user_id' => 8])->getStatusCode());
+        $this->assertSame(
+            200,
+            $this->request('POST', '/products/1/comments/2/likes', ['admin_user_id' => 8])->getStatusCode()
+        );
         $comments = $this->responseData($this->request('GET', '/products/1/comments'))['comments'];
         $this->assertSame(1, $comments[1]['likes']);
-        $this->assertSame(200, $this->request('POST', '/products/1/comments/2/likes', adminUserId: '8')->getStatusCode());
-        $this->assertSame(200, $this->request('POST', '/products/1/comments/4/likes', adminUserId: '8')->getStatusCode());
+        $this->assertSame(
+            200,
+            $this->request('POST', '/products/1/comments/2/likes', adminUserId: '8')->getStatusCode()
+        );
+        $this->assertSame(
+            200,
+            $this->request('POST', '/products/1/comments/4/likes', adminUserId: '8')->getStatusCode()
+        );
         $comments = $this->responseData($this->request('GET', '/products/1/comments'))['comments'];
         $this->assertSame(2, $comments[1]['likes']);
         $this->assertSame(1, $comments[0]['replies'][0]['replies'][0]['likes']);
     }
 
     /** @dataProvider unavailableProducts */
-    public function testUnavailableProductsRejectAllCommentRoutes(int $productId, int $commentId, string $adminUserId): void
-    {
+    public function testUnavailableProductsRejectAllCommentRoutes(
+        int $productId,
+        int $commentId,
+        string $adminUserId
+    ): void {
         $own = $this->responseData($this->request('GET', '/products/1/comments'));
         $foreign = $this->responseData($this->request('GET', '/products/6/comments', adminUserId: '9'));
         $path = '/products/' . $productId . '/comments';
@@ -147,16 +164,32 @@ class CommentControllerTest extends IntegrationTestCase
 
         $this->assertSame(404, $this->request('GET', $path, adminUserId: $adminUserId)->getStatusCode());
         $this->assertSame(404, $this->request('POST', $path, $body, $adminUserId)->getStatusCode());
-        $this->assertSame(404, $this->request('POST', $path . '/' . $commentId . '/replies', $body, $adminUserId)->getStatusCode());
-        $this->assertSame(404, $this->request('DELETE', $path . '/' . $commentId, adminUserId: $adminUserId)->getStatusCode());
-        $this->assertSame(404, $this->request('POST', $path . '/' . $commentId . '/likes', adminUserId: $adminUserId)->getStatusCode());
+        $this->assertSame(
+            404,
+            $this->request('POST', $path . '/' . $commentId . '/replies', $body, $adminUserId)->getStatusCode()
+        );
+        $this->assertSame(
+            404,
+            $this->request('DELETE', $path . '/' . $commentId, adminUserId: $adminUserId)->getStatusCode()
+        );
+        $this->assertSame(
+            404,
+            $this->request('POST', $path . '/' . $commentId . '/likes', adminUserId: $adminUserId)->getStatusCode()
+        );
         $this->assertSame($own, $this->responseData($this->request('GET', '/products/1/comments')));
-        $this->assertSame($foreign, $this->responseData($this->request('GET', '/products/6/comments', adminUserId: '9')));
+        $this->assertSame(
+            $foreign,
+            $this->responseData($this->request('GET', '/products/6/comments', adminUserId: '9'))
+        );
     }
 
     public function unavailableProducts(): array
     {
-        return ['foreign product' => [6, 5, '7'], 'missing product' => [999, 1, '7'], 'other company caller' => [1, 1, '9']];
+        return [
+            'foreign product' => [6, 5, '7'],
+            'missing product' => [999, 1, '7'],
+            'other company caller' => [1, 1, '9']
+        ];
     }
 
     /** @dataProvider unavailableComments */
@@ -219,8 +252,11 @@ class CommentControllerTest extends IntegrationTestCase
     }
 
     /** @dataProvider failedWrites */
-    public function testFailedCommentWritesLeaveTheHierarchyAndLikesUnchanged(string $trigger, string $method, string $path): void
-    {
+    public function testFailedCommentWritesLeaveTheHierarchyAndLikesUnchanged(
+        string $trigger,
+        string $method,
+        string $path
+    ): void {
         $before = $this->responseData($this->request('GET', '/products/1/comments'));
         $this->pdo->exec($trigger);
 
@@ -233,20 +269,40 @@ class CommentControllerTest extends IntegrationTestCase
 
     public function failedWrites(): array
     {
-        $comment = "CREATE TRIGGER reject_comment BEFORE INSERT ON product_comment BEGIN SELECT RAISE(ABORT, 'comment failed'); END";
+        $comment = "CREATE TRIGGER reject_comment BEFORE INSERT ON product_comment
+            BEGIN
+                SELECT RAISE(ABORT, 'comment failed');
+            END";
 
         return [
             'create' => [$comment, 'POST', '/products/1/comments'],
             'reply' => [$comment, 'POST', '/products/1/comments/1/replies'],
-            'delete' => ["CREATE TRIGGER reject_comment_delete BEFORE UPDATE ON product_comment BEGIN SELECT RAISE(ABORT, 'delete failed'); END", 'DELETE', '/products/1/comments/1'],
-            'like' => ["CREATE TRIGGER reject_like BEFORE INSERT ON product_comment_like BEGIN SELECT RAISE(ABORT, 'like failed'); END", 'POST', '/products/1/comments/2/likes'],
+            'delete' => [
+                "CREATE TRIGGER reject_comment_delete BEFORE UPDATE ON product_comment
+                    BEGIN
+                        SELECT RAISE(ABORT, 'delete failed');
+                    END",
+                'DELETE',
+                '/products/1/comments/1'
+            ],
+            'like' => [
+                "CREATE TRIGGER reject_like BEFORE INSERT ON product_comment_like
+                    BEGIN
+                        SELECT RAISE(ABORT, 'like failed');
+                    END",
+                'POST',
+                '/products/1/comments/2/likes'
+            ],
         ];
     }
 
     public function testFailedProductDeletionRestoresTheCommentsAndLikes(): void
     {
         $before = $this->responseData($this->request('GET', '/products/1/comments'));
-        $this->pdo->exec("CREATE TRIGGER reject_product_log BEFORE INSERT ON product_log BEGIN SELECT RAISE(ABORT, 'log failed'); END");
+        $this->pdo->exec("CREATE TRIGGER reject_product_log BEFORE INSERT ON product_log
+            BEGIN
+                SELECT RAISE(ABORT, 'log failed');
+            END");
 
         $response = $this->request('DELETE', '/products/1');
 
@@ -266,7 +322,10 @@ class CommentControllerTest extends IntegrationTestCase
         $this->assertSame(200, $created->getStatusCode());
         $products = $this->responseData($this->request('GET', '/products'));
         $id = array_column($products, null, 'title')['New product']['id'];
-        $this->assertSame(['product_id' => $id, 'comments' => []], $this->responseData($this->request('GET', '/products/' . $id . '/comments')));
+        $this->assertSame(
+            ['product_id' => $id, 'comments' => []],
+            $this->responseData($this->request('GET', '/products/' . $id . '/comments'))
+        );
         $foreign = $this->responseData($this->request('GET', '/products/6/comments', adminUserId: '9'));
         $this->assertSame('Foreign comment', $foreign['comments'][0]['content']);
     }

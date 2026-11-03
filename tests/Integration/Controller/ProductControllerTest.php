@@ -147,7 +147,13 @@ class ProductControllerTest extends IntegrationTestCase
     {
         $products = $this->responseData($this->request('GET', '/products'));
         $report = (string)$this->request('GET', '/report')->getBody();
-        $body = ['company_id' => 42, 'title' => 'Changed', 'price' => 10, 'active' => true, 'category_id' => $categoryId];
+        $body = [
+            'company_id' => 42,
+            'title' => 'Changed',
+            'price' => 10,
+            'active' => true,
+            'category_id' => $categoryId
+        ];
 
         $created = $this->request('POST', '/products', $body);
         $updated = $this->request('PUT', '/products/1', $body);
@@ -208,7 +214,10 @@ class ProductControllerTest extends IntegrationTestCase
     {
         $products = $this->responseData($this->request('GET', '/products'));
         $report = (string)$this->request('GET', '/report')->getBody();
-        $this->pdo->exec("CREATE TRIGGER reject_log BEFORE INSERT ON product_log BEGIN SELECT RAISE(ABORT, 'log failed'); END");
+        $this->pdo->exec("CREATE TRIGGER reject_log BEFORE INSERT ON product_log
+            BEGIN
+                SELECT RAISE(ABORT, 'log failed');
+            END");
 
         $response = $this->request($method, $path, [
             'company_id' => 42, 'title' => 'Changed', 'price' => 10,

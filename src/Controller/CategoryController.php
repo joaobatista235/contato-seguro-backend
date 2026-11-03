@@ -52,7 +52,7 @@ class CategoryController
     {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $categoryId = IntegerValidator::positive($args['id'] ?? null);
+        $categoryId = IntegerValidator::positive($args['id']);
 
         if ($categoryId === null) {
             return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);
@@ -73,8 +73,11 @@ class CategoryController
      * @param array<string, string> $args
      * @return ResponseInterface
      */
-    public function insertOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function insertOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
         $body = $request->getParsedBody();
@@ -102,10 +105,13 @@ class CategoryController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function insertTranslations(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function insertTranslations(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
-        $categoryId = IntegerValidator::positive($args['id'] ?? null);
+        $categoryId = IntegerValidator::positive($args['id']);
 
         if ($categoryId === null) {
             return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);
@@ -132,11 +138,14 @@ class CategoryController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function updateOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function updateOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $categoryId = IntegerValidator::positive($args['id'] ?? null);
+        $categoryId = IntegerValidator::positive($args['id']);
 
         if ($categoryId === null) {
             return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);
@@ -167,11 +176,14 @@ class CategoryController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function deleteOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function deleteOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $categoryId = IntegerValidator::positive($args['id'] ?? null);
+        $categoryId = IntegerValidator::positive($args['id']);
 
         if ($categoryId === null) {
             return JsonResponse::create($response, ['error' => 'category id must be a positive integer'], 400);

@@ -84,7 +84,12 @@ class CategoryTranslationService
         $translations = [];
 
         foreach ($body['translations'] as $translation) {
-            if (!is_array($translation) || !isset($translation['label']) || !is_string($translation['label']) || trim($translation['label']) === '') {
+            if (
+                !is_array($translation) ||
+                !isset($translation['label']) ||
+                !is_string($translation['label']) ||
+                trim($translation['label']) === ''
+            ) {
                 throw new InvalidArgumentException('each translation must contain lang_code and a non-empty label');
             }
 

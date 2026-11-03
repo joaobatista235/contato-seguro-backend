@@ -45,7 +45,7 @@ class CompanyController
     public function getOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
-        $companyId = IntegerValidator::positive($args['id'] ?? null);
+        $companyId = IntegerValidator::positive($args['id']);
 
         if ($companyId === null) {
             return JsonResponse::create($response, ['error' => 'company id must be a positive integer'], 400);

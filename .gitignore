@@ -1,4 +1,7 @@
 vendor
+.cache/
+phpstan.neon
+phpcs.xml
 *.sqlite
 .phpunit.xml
 .phpunit.result.cache

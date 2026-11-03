@@ -32,7 +32,7 @@ class CommentController
      */
     public function getAll(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $productId = IntegerValidator::positive($args['id'] ?? null);
+        $productId = IntegerValidator::positive($args['id']);
 
         if ($productId === null) {
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
@@ -54,8 +54,11 @@ class CommentController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function insertOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function insertOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         return $this->createComment($request, $response, $args);
     }
 
@@ -67,7 +70,7 @@ class CommentController
      */
     public function reply(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $parentId = IntegerValidator::positive($args['comment_id'] ?? null);
+        $parentId = IntegerValidator::positive($args['comment_id']);
 
         if ($parentId === null) {
             return JsonResponse::create($response, ['error' => 'comment id must be a positive integer'], 400);
@@ -83,9 +86,13 @@ class CommentController
      * @param int|null $parentId
      * @return ResponseInterface
      */
-    private function createComment(ServerRequestInterface $request, ResponseInterface $response, array $args, ?int $parentId = null): ResponseInterface
-    {
-        $productId = IntegerValidator::positive($args['id'] ?? null);
+    private function createComment(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+        ?int $parentId = null
+    ): ResponseInterface {
+        $productId = IntegerValidator::positive($args['id']);
 
         if ($productId === null) {
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
@@ -118,13 +125,20 @@ class CommentController
      * @param array{id: string, comment_id: string} $args
      * @return ResponseInterface
      */
-    public function deleteOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
-        $productId = IntegerValidator::positive($args['id'] ?? null);
-        $commentId = IntegerValidator::positive($args['comment_id'] ?? null);
+    public function deleteOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $productId = IntegerValidator::positive($args['id']);
+        $commentId = IntegerValidator::positive($args['comment_id']);
 
         if ($productId === null || $commentId === null) {
-            return JsonResponse::create($response, ['error' => 'product and comment ids must be positive integers'], 400);
+            return JsonResponse::create(
+                $response,
+                ['error' => 'product and comment ids must be positive integers'],
+                400
+            );
         }
 
         $adminUserId = (int)$request->getAttribute('admin_user_id');
@@ -150,11 +164,15 @@ class CommentController
      */
     public function like(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $productId = IntegerValidator::positive($args['id'] ?? null);
-        $commentId = IntegerValidator::positive($args['comment_id'] ?? null);
+        $productId = IntegerValidator::positive($args['id']);
+        $commentId = IntegerValidator::positive($args['comment_id']);
 
         if ($productId === null || $commentId === null) {
-            return JsonResponse::create($response, ['error' => 'product and comment ids must be positive integers'], 400);
+            return JsonResponse::create(
+                $response,
+                ['error' => 'product and comment ids must be positive integers'],
+                400
+            );
         }
 
         $adminUserId = (int)$request->getAttribute('admin_user_id');

@@ -98,8 +98,12 @@ abstract class IntegrationTestCase extends TestCase
      * @param string|null $adminUserId
      * @return ResponseInterface
      */
-    protected function request(string $method, string $path, ?array $body = null, ?string $adminUserId = '7'): ResponseInterface
-    {
+    protected function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        ?string $adminUserId = '7'
+    ): ResponseInterface {
         $request = (new ServerRequestFactory())->createServerRequest($method, $path);
 
         if ($adminUserId !== null) {

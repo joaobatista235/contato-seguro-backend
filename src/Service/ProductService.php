@@ -172,7 +172,13 @@ class ProductService
             return false;
         }
 
-        return $this->repository->transaction(function () use ($productId, $body, $companyId, $categoryId, $adminUserId): bool {
+        return $this->repository->transaction(function () use (
+            $productId,
+            $body,
+            $companyId,
+            $categoryId,
+            $adminUserId
+        ): bool {
             $updated = $this->repository->update(
                 $productId,
                 trim($body['title']),

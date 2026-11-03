@@ -26,8 +26,11 @@ class ReportController
      * @param array<string, string> $args
      * @return ResponseInterface
      */
-    public function generate(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function generate(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
         $html = $this->service->generate($adminUserId);
         $response->getBody()->write($html);

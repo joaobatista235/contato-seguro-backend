@@ -52,7 +52,7 @@ class ProductController
     {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $productId = IntegerValidator::positive($args['id'] ?? null);
+        $productId = IntegerValidator::positive($args['id']);
 
         if ($productId === null) {
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
@@ -77,14 +77,21 @@ class ProductController
      * @param array<string, string> $args
      * @return ResponseInterface
      */
-    public function insertOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function insertOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
         $body = $request->getParsedBody();
 
         if (!is_array($body)) {
-            return JsonResponse::create($response, ['error' => 'request body must contain company_id, title, price, active and category_id'], 400);
+            return JsonResponse::create(
+                $response,
+                ['error' => 'request body must contain company_id, title, price, active and category_id'],
+                400
+            );
         }
 
         try {
@@ -106,11 +113,14 @@ class ProductController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function updateOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function updateOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $productId = IntegerValidator::positive($args['id'] ?? null);
+        $productId = IntegerValidator::positive($args['id']);
 
         if ($productId === null) {
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);
@@ -119,7 +129,11 @@ class ProductController
         $body = $request->getParsedBody();
 
         if (!is_array($body)) {
-            return JsonResponse::create($response, ['error' => 'request body must contain company_id, title, price, active and category_id'], 400);
+            return JsonResponse::create(
+                $response,
+                ['error' => 'request body must contain company_id, title, price, active and category_id'],
+                400
+            );
         }
 
         try {
@@ -141,11 +155,14 @@ class ProductController
      * @param array{id: string} $args
      * @return ResponseInterface
      */
-    public function deleteOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function deleteOne(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $adminUserId = (int)$request->getAttribute('admin_user_id');
 
-        $productId = IntegerValidator::positive($args['id'] ?? null);
+        $productId = IntegerValidator::positive($args['id']);
 
         if ($productId === null) {
             return JsonResponse::create($response, ['error' => 'product id must be a positive integer'], 400);

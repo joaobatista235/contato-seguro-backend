@@ -197,5 +197,4 @@ class CommentRepository
         $stm->bindValue(':product_id', $productId, PDO::PARAM_INT);
         $stm->execute();
     }
-
 }

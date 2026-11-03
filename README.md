@@ -179,9 +179,9 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 ### Desafios
 - [ ] Substituir o banco serverless **SQLite** por um banco como **MySQL**/**PostgreSQL**/outro e servir por container;
 - [ ] Escrever **novos testes unitários** para funcionalidades faltantes;
-- [ ] Implementar um **Linter** e disponibilizar por docker (especificar comando);
-- [ ] Implementar **análise estática** e disponibilizar por docker (especificar comando);
-- [ ] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
+- [x] Implementar um **Linter** e disponibilizar por docker (especificar comando);
+- [x] Implementar **análise estática** e disponibilizar por docker (especificar comando);
+- [x] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
 
 As novas funcionalidades são cobertas por testes de integração das rotas. Os três testes unitários originais foram preservados; o desafio opcional de adicionar novos testes unitários permanece desmarcado.
 
@@ -200,6 +200,10 @@ Aplicação: [http://localhost:8000](http://localhost:8000). O container instala
 | Ação | Comando |
 |---|---|
 | Executar os testes sem interromper no debugger | `docker compose exec -e XDEBUG_MODE=off app composer test` |
+| Verificar o padrão do código | `docker compose exec -e XDEBUG_MODE=off app composer lint` |
+| Corrigir automaticamente a formatação possível | `docker compose exec -e XDEBUG_MODE=off app composer lint:fix` |
+| Executar a análise estática | `docker compose exec -e XDEBUG_MODE=off app composer analyse` |
+| Executar todas as validações | `docker compose exec app composer check` |
 | Aplicar migrations | `docker compose exec app composer migrate` |
 | Criar uma migration | `docker compose exec app composer create-migration NomeDaMigration` |
 | Reverter a última migration | `docker compose exec app composer rollback-migration` |
@@ -208,6 +212,14 @@ Aplicação: [http://localhost:8000](http://localhost:8000). O container instala
 O Xdebug está configurado para o VS Code, sem parâmetro na URL. Instale a extensão **PHP Debug**, selecione **Escutar Xdebug (Docker)** e pressione `F5`.
 
 A instalação a partir de um clone limpo foi validada com as quatro migrations e **192 testes, com 807 verificações**. Os testes usam SQLite isolado e não alteram o banco de desenvolvimento.
+
+#### Qualidade do código
+
+- [PHP_CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer) verifica o padrão PSR-12 em `src`, `public`, `tests` e `db/migrations`. As classes globais das migrations têm exceção apenas para a exigência de namespace do padrão.
+- [PHPStan](https://phpstan.org/user-guide/getting-started) analisa essas mesmas pastas no nível 5, sem baseline ou lista de erros ignorados. O cache fica em `.cache/phpstan`, fora do Git.
+- `check_deploy.sh` valida Composer e lockfile, sintaxe PHP, linter, análise estática e testes, nessa ordem. Desativa o Xdebug e retorna erro assim que uma etapa falha. Pode ser executado com `composer check` ou `docker compose exec app sh check_deploy.sh`.
+
+O script verifica a qualidade do código sem aplicar migrations ou realizar deploy. A auditoria separada `docker compose exec -e XDEBUG_MODE=off app composer audit` apontou oito alertas em quatro dependências já existentes (`cakephp/database`, `phpunit/phpunit`, `slim/slim` e `symfony/yaml`); a atualização dessas bibliotecas permanece pendente para produção.
 
 #### Postman
 

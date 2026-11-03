@@ -75,7 +75,10 @@ class CategoryControllerTest extends IntegrationTestCase
         $this->assertSame(200, $translation->getStatusCode());
         $categories = $this->responseData($this->request('GET', '/categories'));
         $products = $this->responseData($this->request('GET', '/products'));
-        $this->pdo->exec("CREATE TRIGGER reject_category_delete BEFORE DELETE ON category BEGIN SELECT RAISE(ABORT, 'category delete failed'); END");
+        $this->pdo->exec("CREATE TRIGGER reject_category_delete BEFORE DELETE ON category
+            BEGIN
+                SELECT RAISE(ABORT, 'category delete failed');
+            END");
 
         $response = $this->request('DELETE', '/categories/2');
 
@@ -129,7 +132,10 @@ class CategoryControllerTest extends IntegrationTestCase
         $this->assertSame(404, $updated->getStatusCode());
         $this->assertSame(404, $deleted->getStatusCode());
         $this->assertSame($ownCategories, $this->responseData($this->request('GET', '/categories')));
-        $this->assertSame($foreignCategories, $this->responseData($this->request('GET', '/categories', adminUserId: '9')));
+        $this->assertSame(
+            $foreignCategories,
+            $this->responseData($this->request('GET', '/categories', adminUserId: '9'))
+        );
         $this->assertSame($products, $this->responseData($this->request('GET', '/products')));
     }
 

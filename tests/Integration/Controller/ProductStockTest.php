@@ -71,7 +71,12 @@ class ProductStockTest extends IntegrationTestCase
 
     public function minimumStocks(): array
     {
-        return ['zero' => [0, [1, 2, 3, 4, 5]], 'inclusive' => [5, [2, 3, 4]], 'highest own stock' => [10, [3]], 'no matches' => [11, []]];
+        return [
+            'zero' => [0, [1, 2, 3, 4, 5]],
+            'inclusive' => [5, [2, 3, 4]],
+            'highest own stock' => [10, [3]],
+            'no matches' => [11, []]
+        ];
     }
 
     public function testCombinesMinimumStockWithOtherFiltersAndKeepsAllCategories(): void
@@ -106,7 +111,14 @@ class ProductStockTest extends IntegrationTestCase
 
     public function invalidStocks(): array
     {
-        return ['negative' => [-1], 'decimal' => [1.5], 'boolean' => [true], 'null' => [null], 'string' => ['5'], 'array' => [[5]]];
+        return [
+            'negative' => [-1],
+            'decimal' => [1.5],
+            'boolean' => [true],
+            'null' => [null],
+            'string' => ['5'],
+            'array' => [[5]]
+        ];
     }
 
     /** @dataProvider invalidMinimumStocks */

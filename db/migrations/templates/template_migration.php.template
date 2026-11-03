@@ -1,16 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 use Phinx\Migration\AbstractMigration;
 
 class $className extends AbstractMigration
 {
-  public function up()
-  {
-    // Add your 'up' migration code here
-  }
+    /**
+     * @return void
+     */
+    public function up(): void
+    {
+    }
 
-  public function down()
-  {
-    // Add your 'down' migration code here
-  }
+    /**
+     * @return void
+     */
+    public function down(): void
+    {
+    }
 }
