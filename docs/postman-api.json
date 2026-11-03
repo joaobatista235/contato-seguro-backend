@@ -1,628 +1,542 @@
 {
-	"info": {
-		"_postman_id": "9821000f-63e9-4afb-bdb6-a9cc1c230183",
-		"name": "Teste Backend",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "14729547"
-	},
-	"item": [
-		{
-			"name": "report",
-			"item": [
-				{
-					"name": "generate",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": "http://{{base_url}}{{report}}",
-						"description": "GET /report (sem barra final): relatório HTML com logs no formato (Nome do usuário, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss), separados por vírgula e quebra de linha. Usuários ausentes aparecem como Usuário #ID."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "products",
-			"item": [
-				{
-					"name": "getAll",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.products }}/",
-							"host": [
-								"{{ _.base_url }}{{ _.products }}"
-							],
-							"path": [
-								""
-							]
-						},
-						"description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo, order=asc|desc (data de cadastro) e min_stock=inteiro não negativo (mínimo inclusivo de estoque). O campo stock é retornado em cada produto. Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
-					},
-					"response": []
-				},
-				{
-					"name": "getOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.products }}/10",
-							"host": [
-								"{{ _.base_url }}{{ _.products }}"
-							],
-							"path": [
-								"10"
-							]
-						},
-						"description": "GET /products/{id}: retorna stock como inteiro não negativo. O campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
-					},
-					"response": []
-				},
-				{
-					"name": "insertOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "POST",
-						"description": "POST /products: stock é opcional e assume 0 quando omitido.",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1,\n\t\"stock\": 10\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.products }}/",
-							"host": [
-								"{{ _.base_url }}{{ _.products }}"
-							],
-							"path": [
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "updateOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "PUT",
-						"description": "PUT /products/{id}: stock substitui o estoque atual; omitir preserva a quantidade. Os demais campos obrigatórios continuam exigidos.",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"company_id\": 1,\n\t\"title\": \"nome do produto\",\n\t\"price\": 123.4,\n\t\"active\": true,\n\t\"category_id\": 1,\n\t\"stock\": 10\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.products }}/19",
-							"host": [
-								"{{ _.base_url }}{{ _.products }}"
-							],
-							"path": [
-								"19"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "deleteOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.products }}/19",
-							"host": [
-								"{{ _.base_url }}{{ _.products }}"
-							],
-							"path": [
-								"19"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "categories",
-			"item": [
-				{
-					"name": "getAll",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": "http://{{base_url}}{{categories}}",
-						"description": "GET /categories (sem barra final): lista as categorias padrão compartilhadas e as personalizadas da empresa do administrador informado em admin_user_id. Categorias de outras empresas não são incluídas. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
-					},
-					"response": []
-				},
-				{
-					"name": "getOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.categories }}/4",
-							"host": [
-								"{{ _.base_url }}{{ _.categories }}"
-							],
-							"path": [
-								"4"
-							]
-						},
-						"description": "GET /categories/{id}: retorna a categoria em uma lista. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
-					},
-					"response": []
-				},
-				{
-					"name": "insertOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"title\": \"nome da categoria\",\n\t\"active\": true\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.categories }}/",
-							"host": [
-								"{{ _.base_url }}{{ _.categories }}"
-							],
-							"path": [
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "updateOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"title\": \"nome da categoria\",\n\t\"active\": true\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.categories }}/7",
-							"host": [
-								"{{ _.base_url }}{{ _.categories }}"
-							],
-							"path": [
-								"7"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "deleteOne",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": []
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"followRedirects": true,
-						"disableUrlEncoding": false,
-						"disableCookies": false
-					},
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": {
-							"raw": "{{ _.base_url }}{{ _.categories }}/7",
-							"host": [
-								"{{ _.base_url }}{{ _.categories }}"
-							],
-							"path": [
-								"7"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "insertTranslations",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"translations\": [\n    {\n      \"lang_code\": \"en\",\n      \"label\": \"home\"\n    },\n    {\n      \"lang_code\": \"pt\",\n      \"label\": \"casa\"\n    }\n  ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": "http://{{base_url}}{{categories}}/1",
-						"description": "POST /categories/{id}: cadastra traduções de categoria ativa padrão ou da empresa do administrador. 200 em sucesso; 400 para corpo inválido ou idioma repetido no lote ou já cadastrado, sem persistir nenhum item. 404 para categoria inexistente, inativa ou de outra empresa. Traduções de categorias padrão são compartilhadas. Labels são textos não vazios; idiomas são normalizados para minúsculas."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "comments",
-			"item": [
-				{
-					"name": "insertOne",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments",
-						"description": "Cria comentário no produto da empresa do administrador. Retorna 201 com {\"id\": ID}. Copie esse ID para a variável comment_id da coleção para usar as próximas rotas. Content deve ser texto não vazio; autor é definido por admin_user_id. 400 para dados inválidos; 404 para produto indisponível.",
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"content\": \"O que vocês acharam deste produto?\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "reply",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/replies",
-						"description": "Responde diretamente um comentário ou resposta do mesmo produto. Retorna 201 com {\"id\": ID}. 400 para dados inválidos; 404 para produto ou comentário indisponível, removido ou pertencente a outro produto.",
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"content\": \"Gostei do produto.\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "getAll",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments",
-						"description": "Retorna 200 com {\"product_id\": ID, \"comments\": [...]}. Cada item contém id, parent_id, admin_user_id, user_name, content, created_at, deleted, likes e replies. Respostas são aninhadas em replies; ordem por data e ID. Sem comentários: comments é []. Comentários removidos têm content null, deleted true e likes 0, preservando as respostas. 404 para produto indisponível."
-					},
-					"response": []
-				},
-				{
-					"name": "deleteOne",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}",
-						"description": "Remove apenas comentário do próprio autor e retorna 200. Preserva um marcador sem conteúdo para manter as respostas. 403 para outro autor da mesma empresa; 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
-					},
-					"response": []
-				},
-				{
-					"name": "like",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "admin_user_id",
-								"value": "1"
-							}
-						],
-						"url": "http://{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/likes",
-						"description": "Curte comentário ou resposta disponível do produto. Retorna 200 com {\"liked\": true}. Uma curtida por administrador; repetir mantém a contagem. É permitido curtir o próprio comentário. 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "localhost:8000"
-		},
-		{
-			"key": "companies",
-			"value": "/companies"
-		},
-		{
-			"key": "products",
-			"value": "/products"
-		},
-		{
-			"key": "categories",
-			"value": "/categories"
-		},
-		{
-			"key": "report",
-			"value": "/report"
-		},
-		{
-			"key": "product_id",
-			"value": "1"
-		},
-		{
-			"key": "comment_id",
-			"value": "1"
-		}
-	]
+  "info": {
+    "_postman_id": "b81611f5-b55d-4206-87bb-4ff077a2e02e",
+    "name": "Teste Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "20889416",
+    "description": "API do case backend. Configure as variáveis da coleção. base_url inclui o protocolo; admin_user_id é enviado no header de todas as rotas. IDs iniciais: empresa 1, produto 1 e categoria personalizada 4 do backup. Comentários retornam o ID no cadastro; copie-o para comment_id. Produtos e categorias retornam IDs nas listagens. Atualização e exclusão afetam os recursos indicados nas variáveis."
+  },
+  "item": [
+    {
+      "name": "companies",
+      "item": [
+        {
+          "name": "getAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{companies}}",
+            "description": "GET /companies: retorna a empresa do administrador em uma lista."
+          },
+          "response": []
+        },
+        {
+          "name": "getOne",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{companies}}/{{company_id}}",
+            "description": "GET /companies/{id}: retorna a empresa do administrador. Empresa inexistente ou diferente da empresa do administrador retorna 404."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "item": [
+        {
+          "name": "generate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": []
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": true,
+            "disableUrlEncoding": false,
+            "disableCookies": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{report}}",
+            "description": "GET /report (sem barra final): relatório HTML com logs no formato (Nome do usuário, Criação/Atualização/Remoção, dd/mm/aaaa HH:mm:ss), separados por vírgula e quebra de linha. Usuários ausentes aparecem como Usuário #ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "products",
+      "item": [
+        {
+          "name": "getAll",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}",
+            "description": "GET /products (sem barra final): retorna cada produto da empresa do administrador uma vez. O campo category contém todas as categorias ativas disponíveis, inclusive ao filtrar por uma delas. Parâmetros opcionais: active=1|0|true|false, category_id=inteiro positivo, order=asc|desc (data de cadastro) e min_stock=inteiro não negativo (mínimo inclusivo de estoque). O campo stock é retornado em cada produto. Podem ser combinados. Sem order, mantém a ordem por ID; datas iguais usam ID crescente. Categorias inativas, inexistentes ou de outra empresa retornam []; parâmetros inválidos retornam 400. Exemplo: http://localhost:8000/products?active=1&category_id=2&order=desc. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
+          },
+          "response": []
+        },
+        {
+          "name": "getOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}/{{product_id}}",
+            "description": "GET /products/{id}: retorna stock como inteiro não negativo. O campo category retorna uma lista com todas as categorias ativas disponíveis para o administrador (padrão e da sua empresa). Sem categorias, retorna []. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
+          },
+          "response": []
+        },
+        {
+          "name": "insertOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": {{company_id}},\n  \"title\": \"Sample product\",\n  \"price\": 123.4,\n  \"active\": true,\n  \"category_id\": {{category_id}},\n  \"stock\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{products}}",
+            "description": "POST /products: stock é opcional e assume 0 quando omitido."
+          },
+          "response": []
+        },
+        {
+          "name": "updateOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": {{company_id}},\n  \"title\": \"Updated product\",\n  \"price\": 123.4,\n  \"active\": true,\n  \"category_id\": {{category_id}},\n  \"stock\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{products}}/{{product_id}}",
+            "description": "PUT /products/{id}: stock substitui o estoque atual; omitir preserva a quantidade. Os demais campos obrigatórios continuam exigidos."
+          },
+          "response": []
+        },
+        {
+          "name": "deleteOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}/{{product_id}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "categories",
+      "item": [
+        {
+          "name": "getAll",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{categories}}",
+            "description": "GET /categories (sem barra final): lista as categorias padrão compartilhadas e as personalizadas da empresa do administrador informado em admin_user_id. Categorias de outras empresas não são incluídas. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
+          },
+          "response": []
+        },
+        {
+          "name": "getOne",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": []
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": true,
+            "disableUrlEncoding": false,
+            "disableCookies": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{categories}}/{{category_id}}",
+            "description": "GET /categories/{id}: retorna a categoria em uma lista. Parâmetro opcional lang, por exemplo ?lang=pt ou ?lang=pt-BR. Sem lang ou sem tradução correspondente, usa en; se não houver en, usa o título original em inglês. Códigos não distinguem maiúsculas de minúsculas; lang inválido retorna 400."
+          },
+          "response": []
+        },
+        {
+          "name": "insertOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sample category\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{categories}}"
+          },
+          "response": []
+        },
+        {
+          "name": "updateOne",
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "disableUrlEncoding": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated category\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{categories}}/{{category_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "deleteOne",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": []
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": true,
+            "disableUrlEncoding": false,
+            "disableCookies": false
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{categories}}/{{category_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "insertTranslations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"translations\": [\n    {\n      \"lang_code\": \"en\",\n      \"label\": \"furniture\"\n    },\n    {\n      \"lang_code\": \"pt\",\n      \"label\": \"móveis\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{categories}}/{{category_id}}",
+            "description": "POST /categories/{id}: cadastra traduções de categoria ativa padrão ou da empresa do administrador. 200 em sucesso; 400 para corpo inválido ou idioma repetido no lote ou já cadastrado, sem persistir nenhum item. 404 para categoria inexistente, inativa ou de outra empresa. Traduções de categorias padrão são compartilhadas. Labels são textos não vazios; idiomas são normalizados para minúsculas."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "comments",
+      "item": [
+        {
+          "name": "insertOne",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"O que vocês acharam deste produto?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{products}}/{{product_id}}/comments",
+            "description": "Cria comentário no produto da empresa do administrador. Retorna 201 com {\"id\": ID}. Copie esse ID para a variável comment_id da coleção para usar as próximas rotas. Content deve ser texto não vazio; autor é definido por admin_user_id. 400 para dados inválidos; 404 para produto indisponível."
+          },
+          "response": []
+        },
+        {
+          "name": "reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Gostei do produto.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/replies",
+            "description": "Responde diretamente um comentário ou resposta do mesmo produto. Retorna 201 com {\"id\": ID}. 400 para dados inválidos; 404 para produto ou comentário indisponível, removido ou pertencente a outro produto."
+          },
+          "response": []
+        },
+        {
+          "name": "getAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}/{{product_id}}/comments",
+            "description": "Retorna 200 com {\"product_id\": ID, \"comments\": [...]}. Cada item contém id, parent_id, admin_user_id, user_name, content, created_at, deleted, likes e replies. Respostas são aninhadas em replies; ordem por data e ID. Sem comentários: comments é []. Comentários removidos têm content null, deleted true e likes 0, preservando as respostas. 404 para produto indisponível."
+          },
+          "response": []
+        },
+        {
+          "name": "deleteOne",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}",
+            "description": "Remove apenas comentário do próprio autor e retorna 200. Preserva um marcador sem conteúdo para manter as respostas. 403 para outro autor da mesma empresa; 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
+          },
+          "response": []
+        },
+        {
+          "name": "like",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "admin_user_id",
+                "value": "{{admin_user_id}}"
+              }
+            ],
+            "url": "{{base_url}}{{products}}/{{product_id}}/comments/{{comment_id}}/likes",
+            "description": "Curte comentário ou resposta disponível do produto. Retorna 200 com {\"liked\": true}. Uma curtida por administrador; repetir mantém a contagem. É permitido curtir o próprio comentário. 404 para produto ou comentário indisponível ou removido; 400 para IDs inválidos."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "companies",
+      "value": "/companies",
+      "type": "string"
+    },
+    {
+      "key": "products",
+      "value": "/products",
+      "type": "string"
+    },
+    {
+      "key": "categories",
+      "value": "/categories",
+      "type": "string"
+    },
+    {
+      "key": "report",
+      "value": "/report",
+      "type": "string"
+    },
+    {
+      "key": "admin_user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "company_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "4",
+      "type": "string"
+    },
+    {
+      "key": "comment_id",
+      "value": "1",
+      "type": "string"
+    }
+  ]
 }

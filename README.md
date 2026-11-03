@@ -10,14 +10,21 @@ Existe uma seção ao fim do _README_ chamada **"Suas Respostas, Dúvidas e Obse
 ## Configuração do Ambiente
 
 ### Requisitos
-- _PHP >= 8.0_ e [extensões](https://www.php.net/manual/pt_BR/extensions.php) (**não esquecer de instalar as seguintes extensões: _pdo_, _pdo_sqlite_ e _sqlite3_**);
-- [_SQLite_](https://www.sqlite.org/index.html);
-- [_Composer_](https://getcomposer.org/).
+- Git;
+- Docker com Docker Compose;
+- Porta `8000` disponível.
+
+PHP 8.3, Composer e suporte ao SQLite são fornecidos pelo container.
 
 ### Instalação
-- Instalar dependências pelo _composer_ com `composer install` na raiz do projeto;
-- Servir a pasta _public_ do projeto através de algum servidor.
-  (_Sugestão [PHP Built in Server](https://www.php.net/manual/en/features.commandline.webserver.)_. Exemplo para servir a pasta public: `php -S localhost:8000 -t public`)
+
+Após clonar o repositório, execute na raiz do projeto:
+
+```sh
+docker compose up -d --build
+```
+
+A API fica disponível em [http://localhost:8000](http://localhost:8000). As dependências, o banco inicial e as migrations são preparados automaticamente quando o container inicia. Os comandos de testes e manutenção estão em **Suas Respostas, Dúvidas e Observações**.
 
 ## Sobre a entrega
 >[!CAUTION]
@@ -38,8 +45,11 @@ Existe uma seção ao fim do _README_ chamada **"Suas Respostas, Dúvidas e Obse
 
 ## Sobre a API
 As rotas estão divididas em:
+  - Consultas de _empresas_;
   - _CRUD_ de _categorias_;
+  - Cadastro de _traduções_ de categorias;
   - _CRUD_ de _produtos_;
+  - _Comentários_, respostas e curtidas de produtos;
   - Rota de busca de um _relatório_ que retorna um _html_.
 
 Deve ser utilizado o [Postman](https://www.postman.com/) para desenvolvimento e documentação, o arquivo para importação das rotas se encontra em `docs/postman-api.json`.
@@ -47,7 +57,7 @@ Deve ser utilizado o [Postman](https://www.postman.com/) para desenvolvimento e 
 > [!WARNING]
 > É importante que se adicione o _header_ `admin_user_id` com o id do usuário desejado ao acessar as rotas para simular o uso de um usuário no sistema.
 
-A documentação da API se encontra na pasta `docs/api-docs.pdf`
+A coleção atualizada da API está em `docs/postman-api.json`; `docs/api-docs.pdf` contém a documentação inicial do case.
   - A documentação assume que a url base é `localhost:8000` mas você pode usar qualquer outra url ao configurar o servidor;
   - O _header_ `admin_user_id` na documentação está indicado com valor `1` mas pode ser usado o id de qualquer outro usuário caso deseje (_pesquisando no banco de dados é possível ver os outros id's de usuários_).
 
@@ -60,10 +70,11 @@ A documentação da API se encontra na pasta `docs/api-docs.pdf`
 - **Seu arquivo de banco** `db.sqlite3` **não será utilizado para avaliação** do teste, por isso é importante persistir mudanças necessárias em migrations;
 - A biblioteca utilizada para migrations foi o [**_Phinx_**](https://book.cakephp.org/phinx/0/en/index.html);
 - As migrations criadas **devem poder ser revertidas** (método `down()`);
-- Para interagir com as migrations, você pode usar os seguintes comandos:
-- - Criar nova migration: `composer create-migration`
-- - Rodar migrations: `composer migrate`
-- - Reverter migration: `composer rollback`
+Comandos do Composer, executados dentro do container:
+
+- Criar nova migration: `composer create-migration NomeDaMigration`;
+- Rodar migrations: `composer migrate`;
+- Reverter migration: `composer rollback-migration`.
 
 # Demandas
 Abaixo, as solicitações do cliente:
@@ -94,6 +105,8 @@ Para a listagem de produtos:
 
 ### Logs
 - [ ] Gostaria de saber qual usuário mudou o preço do produto `iphone 8` por último.
+
+Investigação realizada; a alteração específica do preço não pode ser comprovada pelos logs disponíveis. Veja a seção **6. Investigação do iphone 8**.
 
 ### Correção de bug
 - [x] Ao rodar os teste unitários com `composer test` são apontados erros. Eles precisam ser resolvidos, com documentação sobre a causa e a solução.
@@ -159,9 +172,9 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 - A funcionalidade de **PHP** deve rodar na porta **8000** do host.
 
 ### Itens obrigatórios
-- [ ] Criar um ambiente docker que sobe a aplicação **PHP** na porta **8000**;
-- [ ] Possibilitar que as **_migrations_ possam ser executadas/criadas por docker** (especificar comando);
-- [ ] Possibilitar que os **_testes unitários_ sejam executados por docker** (especificar comando).
+- [x] Criar um ambiente docker que sobe a aplicação **PHP** na porta **8000**;
+- [x] Possibilitar que as **_migrations_ possam ser executadas/criadas por docker** (especificar comando);
+- [x] Possibilitar que os **_testes unitários_ sejam executados por docker** (especificar comando).
 
 ### Desafios
 - [ ] Substituir o banco serverless **SQLite** por um banco como **MySQL**/**PostgreSQL**/outro e servir por container;
@@ -169,6 +182,8 @@ Para efetuar a criação do ambiente docker, partimos de algumas premissas:
 - [ ] Implementar um **Linter** e disponibilizar por docker (especificar comando);
 - [ ] Implementar **análise estática** e disponibilizar por docker (especificar comando);
 - [ ] Escrever um script "_`check_deploy.sh`_" que faz todas as validações implementadas como uma pipeline e determina se o código está pronto para produção.
+
+As novas funcionalidades são cobertas por testes de integração das rotas. Os três testes unitários originais foram preservados; o desafio opcional de adicionar novos testes unitários permanece desmarcado.
 
 ## Suas Respostas, Dúvidas e Observações
 
@@ -191,6 +206,14 @@ Aplicação: [http://localhost:8000](http://localhost:8000). O container instala
 | Encerrar o ambiente | `docker compose down` |
 
 O Xdebug está configurado para o VS Code, sem parâmetro na URL. Instale a extensão **PHP Debug**, selecione **Escutar Xdebug (Docker)** e pressione `F5`.
+
+A instalação a partir de um clone limpo foi validada com as quatro migrations e **192 testes, com 807 verificações**. Os testes usam SQLite isolado e não alteram o banco de desenvolvimento.
+
+#### Postman
+
+Importe `docs/postman-api.json`. As 19 rotas usam variáveis da coleção; `base_url` já inclui o protocolo (`http://localhost:8000`), e `admin_user_id` identifica o administrador simulado.
+
+Os valores iniciais apontam para a empresa `1`, produto `1` e categoria personalizada `4` do backup original. Ajuste `company_id`, `product_id` e `category_id` conforme o cenário. Após cadastrar um comentário, copie o ID retornado para `comment_id` antes de responder, curtir ou remover. Para produtos e categorias recém-criados, consulte a listagem para obter o ID. As operações de atualização e exclusão alteram os registros indicados nessas variáveis.
 
 ### 2. Correções realizadas
 
